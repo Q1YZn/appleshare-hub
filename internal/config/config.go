@@ -32,15 +32,13 @@ func Default() Config {
 				ID:      "sha_cx_01",
 				Type:    "sha_cx",
 				Name:    "渠道 A（sha.cx）",
-				URL:     "https://d8p8e.sha.cx/51e8990f678655f7749dfa8c5598dfbd",
 				Enabled: true,
-			},
-			{
-				ID:      "sha_cx_02",
-				Type:    "sha_cx",
-				Name:    "渠道 B（sha.cx）",
-				URL:     "https://7y6h5.sha.cx/23cfa3c22135050d45f82283f2ef6e7f",
-				Enabled: true,
+				Options: map[string]any{
+					"urls": []string{
+						"https://d8p8e.sha.cx/51e8990f678655f7749dfa8c5598dfbd",
+						"https://7y6h5.sha.cx/23cfa3c22135050d45f82283f2ef6e7f",
+					},
+				},
 			},
 			{
 				ID:      "fanqiangnan_01",

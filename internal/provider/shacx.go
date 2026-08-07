@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Q1YZn/appleshare-hub/internal/model"
@@ -20,7 +21,7 @@ var shaCXAdPattern = regexp.MustCompile(`(?s)ad\s*=\s*'([^']*)'`)
 type shaCXProvider struct {
 	id        string
 	name      string
-	url       string
+	urls      []string
 	client    *http.Client
 	userAgent string
 }
@@ -41,8 +42,9 @@ func init() {
 }
 
 func newShaCXProvider(cfg Config) (Provider, error) {
-	if strings.TrimSpace(cfg.URL) == "" {
-		return nil, fmt.Errorf("sha_cx provider %q requires url", cfg.ID)
+	urls := shaCXSourceURLs(cfg)
+	if len(urls) == 0 {
+		return nil, fmt.Errorf("sha_cx provider %q requires url or options.urls", cfg.ID)
 	}
 	timeout := 15 * time.Second
 	if v, ok := cfg.Options["request_timeout_seconds"].(float64); ok && v > 0 {
@@ -51,10 +53,45 @@ func newShaCXProvider(cfg Config) (Provider, error) {
 	return &shaCXProvider{
 		id:        cfg.ID,
 		name:      cfg.Name,
-		url:       cfg.URL,
+		urls:      urls,
 		client:    &http.Client{Timeout: timeout},
 		userAgent: shaCXDefaultUserAgent,
 	}, nil
+}
+
+func shaCXSourceURLs(cfg Config) []string {
+	var urls []string
+	if url := strings.TrimSpace(cfg.URL); url != "" {
+		urls = append(urls, url)
+	}
+	if raw, ok := cfg.Options["urls"]; ok {
+		switch items := raw.(type) {
+		case []string:
+			for _, item := range items {
+				if url := strings.TrimSpace(item); url != "" {
+					urls = append(urls, url)
+				}
+			}
+		case []any:
+			for _, item := range items {
+				if url, ok := item.(string); ok {
+					if url = strings.TrimSpace(url); url != "" {
+						urls = append(urls, url)
+					}
+				}
+			}
+		}
+	}
+	seen := map[string]struct{}{}
+	unique := urls[:0]
+	for _, url := range urls {
+		if _, ok := seen[url]; ok {
+			continue
+		}
+		seen[url] = struct{}{}
+		unique = append(unique, url)
+	}
+	return unique
 }
 
 func (p *shaCXProvider) ID() string {
@@ -66,7 +103,47 @@ func (p *shaCXProvider) Name() string {
 }
 
 func (p *shaCXProvider) Fetch(ctx context.Context) ([]model.Account, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.url, nil)
+	type result struct {
+		accounts []model.Account
+		err      error
+	}
+
+	results := make([]result, len(p.urls))
+	var wg sync.WaitGroup
+	for i, url := range p.urls {
+		wg.Add(1)
+		go func(i int, url string) {
+			defer wg.Done()
+			accounts, err := p.fetchOne(ctx, url)
+			results[i] = result{accounts: accounts, err: err}
+		}(i, url)
+	}
+	wg.Wait()
+
+	var accounts []model.Account
+	var errs []string
+	seen := map[string]struct{}{}
+	for _, res := range results {
+		if res.err != nil {
+			errs = append(errs, res.err.Error())
+			continue
+		}
+		for _, account := range res.accounts {
+			if _, ok := seen[account.Username]; ok {
+				continue
+			}
+			seen[account.Username] = struct{}{}
+			accounts = append(accounts, account)
+		}
+	}
+	if len(errs) > 0 {
+		return accounts, fmt.Errorf("fetch %d/%d sha.cx sources: %s", len(errs), len(p.urls), strings.Join(errs, "; "))
+	}
+	return accounts, nil
+}
+
+func (p *shaCXProvider) fetchOne(ctx context.Context, url string) ([]model.Account, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
@@ -119,7 +196,7 @@ func (p *shaCXProvider) Fetch(ctx context.Context) ([]model.Account, error) {
 			StatusLabel:   label,
 			RawStatus:     item.Status,
 			UpdatedAt:     item.Time,
-			SourceURL:     p.url,
+			SourceURL:     url,
 		})
 	}
 	return accounts, nil

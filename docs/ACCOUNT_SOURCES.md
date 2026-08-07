@@ -6,8 +6,7 @@
 
 | 配置 ID | 类型 | 名称 | 来源 |
 | --- | --- | --- | --- |
-| `sha_cx_01` | `sha_cx` | 渠道 A（sha.cx） | <https://d8p8e.sha.cx/51e8990f678655f7749dfa8c5598dfbd> |
-| `sha_cx_02` | `sha_cx` | 渠道 B（sha.cx） | <https://7y6h5.sha.cx/23cfa3c22135050d45f82283f2ef6e7f> |
+| `sha_cx_01` | `sha_cx` | 渠道 A（sha.cx） | <https://d8p8e.sha.cx/51e8990f678655f7749dfa8c5598dfbd> 与 <https://7y6h5.sha.cx/23cfa3c22135050d45f82283f2ef6e7f> |
 | `fanqiangnan_01` | `fanqiangnan` | 翻墙男（fanqiangnan） | <https://fanqiangnan.com/data_sync.php> |
 | `idfree_01` | `idfree` | 小优 ID（idfree） | <https://idfree.top/> |
 | `appleid_api_01` | `appleid_api` | 云码酷（appleid.uczyw.us） | <https://appleid.uczyw.us/api/accounts> |
@@ -49,6 +48,25 @@
 ```
 
 `status` 映射规则见 `internal/provider/shacx.go` 的 `mapShaCXStatus`。
+
+两个 sha.cx 分享页默认合并为同一个“渠道 A”，配置方式如下，账号按用户名去重：
+
+```json
+{
+  "id": "sha_cx_01",
+  "type": "sha_cx",
+  "name": "渠道 A（sha.cx）",
+  "enabled": true,
+  "options": {
+    "urls": [
+      "https://d8p8e.sha.cx/51e8990f678655f7749dfa8c5598dfbd",
+      "https://7y6h5.sha.cx/23cfa3c22135050d45f82283f2ef6e7f"
+    ]
+  }
+}
+```
+
+兼容旧的单个 `url` 字段；同时配置 `url` 与 `options.urls` 时会合并并去重。
 
 ### 2.2 fanqiangnan
 

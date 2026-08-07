@@ -9,15 +9,13 @@
       "id": "sha_cx_01",
       "type": "sha_cx",
       "name": "渠道 A（sha.cx）",
-      "url": "https://d8p8e.sha.cx/51e8990f678655f7749dfa8c5598dfbd",
-      "enabled": true
-    },
-    {
-      "id": "sha_cx_02",
-      "type": "sha_cx",
-      "name": "渠道 B（sha.cx）",
-      "url": "https://7y6h5.sha.cx/23cfa3c22135050d45f82283f2ef6e7f",
-      "enabled": true
+      "enabled": true,
+      "options": {
+        "urls": [
+          "https://d8p8e.sha.cx/51e8990f678655f7749dfa8c5598dfbd",
+          "https://7y6h5.sha.cx/23cfa3c22135050d45f82283f2ef6e7f"
+        ]
+      }
     },
     {
       "id": "fanqiangnan_01",
