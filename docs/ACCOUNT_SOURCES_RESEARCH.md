@@ -1,0 +1,261 @@
+# 苹果共享账号来源调研
+
+> 状态：调研完成，等待确认是否接入代码。
+
+## 1. 调研说明
+
+- 调研日期：2026-08-07
+- 调研方式：谷歌搜索语法、目标站点实测、接口请求验证
+- 验证环境：Windows PowerShell + `curl.exe`
+- 结论：找到 4 个可脚本抓取的候选来源，其中 3 个为公开 JSON / 文本接口，1 个需要模拟浏览器会话。
+
+## 2. 使用的搜索语法
+
+本轮实际使用的语法：
+
+```text
+"苹果账号" "免费共享" "App Store"
+"Apple ID" "共享账号" password "App Store"
+"苹果共享账号" "自动检测" 免费
+"免费苹果ID" "共享" 密码
+"美区Apple ID" 共享 自动检测
+苹果账号 分享 网站 API 账号池
+```
+
+后续可继续尝试：
+
+```text
+site:github.com apple id 共享 账号
+"免费苹果ID" "共享" 密码 更新时间
+"Apple ID" "共享账号" password 更新时间
+"美区Apple ID" 共享 自动检测 2026
+苹果账号 分享 网站 接口 账号池
+```
+
+## 3. 候选来源一览
+
+| 来源 | 入口 / 接口 | 鉴权 | 数据格式 | 实测结果 | 抓取难度 | 建议 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 翻墙男 | `https://fanqiangnan.com/appleid.html`<br>`https://fanqiangnan.com/data_sync.php` | 无 | JSON | 200，约 41 个账号 | 低 | 优先接入 |
+| 小优 ID | `https://idfree.top/`<br>`https://idfree.top/api/accounts.php` | Cookie + X-Token + 浏览器头 | JSON 数组 | 200，可获取 | 中 | 第二批接入 |
+| CCKDN 云码酷 | `https://appleid.uczyw.us/api/accounts`<br>`https://appleid2.uczyw.us/api/accounts` | 无 | JSON | 200，count=42 | 低 | 可作为冗余源 |
+| free.iosapp.icu | `https://free.iosapp.icu/go-rod/1.txt`<br>`.../2.txt`<br>`.../3.txt` | 无 | 纯文本 | 200，每文件 1 个账号 | 低 | 补充源 |
+| Applo / mp.499599.xyz | 需账号登录、订单购买 | 高 | JSON | 无公开账号 | 高 | 暂不接入 |
+| GitHub 仓库 Markdown | `janhaas1980-south/Apple-ID-Public-Share` | 无 | Markdown 表格 | 200，密码未完全公开 | 中 | 暂不接入 |
+| 论坛 / 聚合页 | resohub、linux.do、nodeloc、moyunews | 无 | 页面 | 403 或仅为推广介绍 | - | 暂不接入 |
+
+## 4. 各来源接口详情
+
+### 4.1 翻墙男 `fanqiangnan.com`
+
+数据接口：
+
+```text
+GET https://fanqiangnan.com/data_sync.php
+```
+
+验证命令：
+
+```powershell
+curl.exe -s -L --max-time 15 https://fanqiangnan.com/data_sync.php
+```
+
+返回结构（密码已脱敏）：
+
+```json
+{
+  "success": true,
+  "timestamp": 1786071481,
+  "data": {
+    "accounts": {
+      "group1": [
+        {
+          "id": "1-1",
+          "fullEmail": "user@example.com",
+          "password": "****",
+          "status": "正常",
+          "checkTime": "2026-08-07 01:59:50",
+          "region": "US",
+          "regionName": "美国"
+        }
+      ],
+      "group2": []
+    },
+    "vpn_ads": []
+  }
+}
+```
+
+要点：
+
+- 无鉴权、无复杂风控，直接返回 JSON。
+- `group1` 是账号主体，`group2` 当前为空。
+- `vpn_ads` 是广告数据，接入时忽略。
+- 上游声称每 30 分钟自动检测一次，实测 `checkTime` 字段存在且为当天。
+
+### 4.2 小优 ID `idfree.top`
+
+完整流程：
+
+```text
+1. GET  https://idfree.top/                    获取 Cookie 和 <meta name="x-token">
+2. POST https://idfree.top/api/session_verify.php
+3. GET  https://idfree.top/api/accounts.php    携带 Cookie、X-Token、浏览器头
+```
+
+验证命令（PowerShell）：
+
+```powershell
+$jar = Join-Path $env:TEMP "idfree_cookies.txt"
+$ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+
+curl.exe -s -c $jar -A $ua https://idfree.top/ | Out-Null
+
+$page = curl.exe -s -c $jar -A $ua https://idfree.top/
+
+$token = [regex]::Match(
+  ($page -join "`n"),
+  '<meta name="x-token" content="([^"]+)"'
+).Groups[1].Value
+
+curl.exe -s -b $jar -c $jar -A $ua `
+  -H "X-Token: $token" `
+  -H "Referer: https://idfree.top/" `
+  -H "Origin: https://idfree.top" `
+  -H "X-Requested-With: XMLHttpRequest" `
+  -X POST https://idfree.top/api/session_verify.php
+
+curl.exe -s -b $jar -A $ua `
+  -H "Accept: application/json, text/javascript, */*; q=0.01" `
+  -H "Accept-Language: zh-CN,zh;q=0.9,en;q=0.8" `
+  -H "Sec-Fetch-Dest: empty" `
+  -H "Sec-Fetch-Mode: cors" `
+  -H "Sec-Fetch-Site: same-origin" `
+  -H "X-Token: $token" `
+  -H "Referer: https://idfree.top/" `
+  -H "X-Requested-With: XMLHttpRequest" `
+  https://idfree.top/api/accounts.php
+```
+
+返回结构（密码已脱敏）：
+
+```json
+[
+  {
+    "id": 9900,
+    "username": "user@example.com",
+    "password": "****",
+    "message": "正常",
+    "last_check": "2026-08-07 11:27:26",
+    "last_check_success": 1,
+    "region_display": "美国",
+    "status": true
+  }
+]
+```
+
+要点：
+
+- 缺少 `Accept` / `Sec-Fetch-*` / `X-Requested-With` 等浏览器头会返回 `INVALID_BROWSER`。
+- 需要维护 Cookie 和 X-Token 会话，建议接入时复用同一个 HTTP Client。
+- 当前账号量较小，但字段规范、状态明确。
+
+### 4.3 CCKDN 云码酷 `appleid.uczyw.us`
+
+公开接口：
+
+```text
+GET https://appleid.uczyw.us/api/accounts
+GET https://appleid2.uczyw.us/api/accounts
+```
+
+验证命令：
+
+```powershell
+curl.exe -s -L --max-time 15 https://appleid.uczyw.us/api/accounts
+```
+
+返回结构（密码已脱敏）：
+
+```json
+{
+  "success": true,
+  "count": 42,
+  "data": [
+    {
+      "id": "481c86cd",
+      "email": "user@example.com",
+      "password": "****",
+      "masked_email": "us****@example.com",
+      "region": "美国",
+      "status": "正常",
+      "source": "ccbaohe",
+      "timestamp": "2026-08-07T03:29:46.423Z"
+    }
+  ]
+}
+```
+
+要点：
+
+- 无鉴权 JSON，字段完整，适合做第二或第三数据源。
+- 两个域名返回结构一致，可配置为主备。
+- 页面另有密码验证接口 `https://www.cckdn.cn/source/plugin/webzxnet_urlattach/mima.php`，实测可返回纯文本密码，但 API 已直接给出密码，不必再依赖页面接口。
+
+### 4.4 `free.iosapp.icu`
+
+纯文本文件：
+
+```text
+https://free.iosapp.icu/go-rod/1.txt
+https://free.iosapp.icu/go-rod/2.txt
+https://free.iosapp.icu/go-rod/3.txt
+```
+
+验证命令：
+
+```powershell
+curl.exe -s -L --max-time 15 https://free.iosapp.icu/go-rod/1.txt
+```
+
+返回示例（密码已脱敏）：
+
+```text
+类型:
+账号: user@example.com
+密码: ****
+检查时间:
+状态: 账号可用
+```
+
+要点：
+
+- 每文件仅 1 个账号，数量少，只适合作为补充源。
+- 首页为 GBK 编码，但文本文件内容简单，按行解析即可。
+
+## 5. 与现有 sha.cx 渠道的对比
+
+| 对比项 | sha.cx | fanqiangnan | idfree.top | appleid.uczyw.us | free.iosapp.icu |
+| --- | --- | --- | --- | --- | --- |
+| 响应形式 | 页面内嵌 `ad` JSON | 直接 JSON | JSON 数组 | JSON | 纯文本 |
+| 鉴权 | 无 | 无 | Cookie + Token + 浏览器头 | 无 | 无 |
+| 账号量 | 2 个分享页 | 约 41 个 | 少量 | 42 个 | 3 个 |
+| 更新时间 | 页面内字段 | `checkTime` | `last_check` | `timestamp` | 文本内字段 |
+| 接入成本 | 已实现 | 低 | 中 | 低 | 低 |
+
+现有 `sha_cx` 是 HTML 解析，候选源大多是 JSON，接入时只需各自实现 `Provider` 的 `Fetch` 并映射到统一的 `model.Account`，前端和 API 无需改动。
+
+## 6. 接入优先级建议
+
+1. `fanqiangnan.com/data_sync.php`：无鉴权、数据量大、成本最低，优先。
+2. `appleid.uczyw.us/api/accounts`：公开 JSON，两个域名可做冗余。
+3. `idfree.top/api/accounts.php`：已有浏览器风控，但流程已跑通，适合做第二个接入样本。
+4. `free.iosapp.icu/go-rod/*.txt`：解析简单，数据量小，只作补充。
+5. Applo、GitHub Markdown、论坛聚合页：暂不接入，原因见候选来源一览。
+
+## 7. 风险提示
+
+- 上游接口可能随时变更结构、增加风控或关闭访问，接入时保留超时、失败降级和缓存。
+- 共享账号本身存在被上游停用、被他人修改密码、触发苹果锁定的风险，页面必须持续展示“仅 App Store 登录、iOS 26 从设置退出”的提示。
+- 不要在日志、文档或仓库中保存真实账号密码；本调研文档中的密码均为脱敏示例。
+- 数据仅用于技术测试，请遵守上游站点规则、Apple 服务条款和当地法律。

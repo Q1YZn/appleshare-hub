@@ -131,6 +131,7 @@ go run .
 
 - [架构设计](docs/ARCHITECTURE.md)
 - [账号渠道接入](docs/ACCOUNT_SOURCES.md)
+- [渠道来源调研](docs/ACCOUNT_SOURCES_RESEARCH.md)
 - [iOS 26 登录/退出教程](docs/IOS26_LOGOUT_GUIDE.md)
 
 ## 免责声明

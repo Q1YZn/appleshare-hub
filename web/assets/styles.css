@@ -530,6 +530,11 @@ h2 {
   font-size: 13px;
 }
 
+.guide-steps strong,
+.guide-steps span {
+  grid-column: 2;
+}
+
 figure {
   margin: 0 0 16px;
 }
