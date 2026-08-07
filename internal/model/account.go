@@ -23,6 +23,7 @@ type Account struct {
 	StatusMessage string `json:"status_message"`
 	StatusLabel   string `json:"status_label"`
 	RawStatus     int    `json:"raw_status,omitempty"`
+	Priority      int    `json:"priority,omitempty"`
 	UpdatedAt     string `json:"updated_at"`
 	SourceURL     string `json:"source_url,omitempty"`
 }

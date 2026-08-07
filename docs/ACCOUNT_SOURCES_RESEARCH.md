@@ -1,6 +1,6 @@
 # 苹果共享账号来源调研
 
-> 状态：调研完成，等待确认是否接入代码。
+> 状态：调研完成，fanqiangnan、idfree、appleid.uczyw.us、free.iosapp.icu 已接入代码。
 
 ## 1. 调研说明
 
@@ -34,12 +34,12 @@ site:github.com apple id 共享 账号
 
 ## 3. 候选来源一览
 
-| 来源 | 入口 / 接口 | 鉴权 | 数据格式 | 实测结果 | 抓取难度 | 建议 |
+| 来源 | 入口 / 接口 | 鉴权 | 数据格式 | 实测结果 | 抓取难度 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 翻墙男 | `https://fanqiangnan.com/appleid.html`<br>`https://fanqiangnan.com/data_sync.php` | 无 | JSON | 200，约 41 个账号 | 低 | 优先接入 |
-| 小优 ID | `https://idfree.top/`<br>`https://idfree.top/api/accounts.php` | Cookie + X-Token + 浏览器头 | JSON 数组 | 200，可获取 | 中 | 第二批接入 |
-| CCKDN 云码酷 | `https://appleid.uczyw.us/api/accounts`<br>`https://appleid2.uczyw.us/api/accounts` | 无 | JSON | 200，count=42 | 低 | 可作为冗余源 |
-| free.iosapp.icu | `https://free.iosapp.icu/go-rod/1.txt`<br>`.../2.txt`<br>`.../3.txt` | 无 | 纯文本 | 200，每文件 1 个账号 | 低 | 补充源 |
+| 翻墙男 | `https://fanqiangnan.com/appleid.html`<br>`https://fanqiangnan.com/data_sync.php` | 无 | JSON | 200，约 41 个账号 | 低 | 已接入 |
+| 小优 ID | `https://idfree.top/`<br>`https://idfree.top/api/accounts.php` | Cookie + X-Token + 浏览器头 | JSON 数组 | 200，可获取 | 中 | 已接入 |
+| CCKDN 云码酷 | `https://appleid.uczyw.us/api/accounts`<br>`https://appleid2.uczyw.us/api/accounts` | 无 | JSON | 200，count=42 | 低 | 已接入（备用源默认关闭） |
+| free.iosapp.icu | `https://free.iosapp.icu/go-rod/1.txt`<br>`.../2.txt`<br>`.../3.txt` | 无 | 纯文本 | 200，每文件 1 个账号 | 低 | 已接入（低优先级） |
 | Applo / mp.499599.xyz | 需账号登录、订单购买 | 高 | JSON | 无公开账号 | 高 | 暂不接入 |
 | GitHub 仓库 Markdown | `janhaas1980-south/Apple-ID-Public-Share` | 无 | Markdown 表格 | 200，密码未完全公开 | 中 | 暂不接入 |
 | 论坛 / 聚合页 | resohub、linux.do、nodeloc、moyunews | 无 | 页面 | 403 或仅为推广介绍 | - | 暂不接入 |
@@ -247,10 +247,10 @@ curl.exe -s -L --max-time 15 https://free.iosapp.icu/go-rod/1.txt
 
 ## 6. 接入优先级建议
 
-1. `fanqiangnan.com/data_sync.php`：无鉴权、数据量大、成本最低，优先。
-2. `appleid.uczyw.us/api/accounts`：公开 JSON，两个域名可做冗余。
-3. `idfree.top/api/accounts.php`：已有浏览器风控，但流程已跑通，适合做第二个接入样本。
-4. `free.iosapp.icu/go-rod/*.txt`：解析简单，数据量小，只作补充。
+1. `fanqiangnan.com/data_sync.php`：无鉴权、数据量大、成本最低，已接入。
+2. `appleid.uczyw.us/api/accounts`：公开 JSON，两个域名可做冗余，已接入。
+3. `idfree.top/api/accounts.php`：已有浏览器风控，但流程已跑通，已接入。
+4. `free.iosapp.icu/go-rod/*.txt`：解析简单，数据量小，已作为低优先级补充源接入。
 5. Applo、GitHub Markdown、论坛聚合页：暂不接入，原因见候选来源一览。
 
 ## 7. 风险提示

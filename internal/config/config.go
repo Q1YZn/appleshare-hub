@@ -42,6 +42,47 @@ func Default() Config {
 				URL:     "https://7y6h5.sha.cx/23cfa3c22135050d45f82283f2ef6e7f",
 				Enabled: true,
 			},
+			{
+				ID:      "fanqiangnan_01",
+				Type:    "fanqiangnan",
+				Name:    "翻墙男（fanqiangnan）",
+				URL:     "https://fanqiangnan.com/data_sync.php",
+				Enabled: true,
+			},
+			{
+				ID:      "idfree_01",
+				Type:    "idfree",
+				Name:    "小优 ID（idfree）",
+				URL:     "https://idfree.top/",
+				Enabled: true,
+			},
+			{
+				ID:      "appleid_api_01",
+				Type:    "appleid_api",
+				Name:    "云码酷（appleid.uczyw.us）",
+				URL:     "https://appleid.uczyw.us/api/accounts",
+				Enabled: true,
+			},
+			{
+				ID:      "appleid_api_02",
+				Type:    "appleid_api",
+				Name:    "云码酷备用（appleid2.uczyw.us）",
+				URL:     "https://appleid2.uczyw.us/api/accounts",
+				Enabled: false,
+			},
+			{
+				ID:      "iosapp_text_01",
+				Type:    "iosapp_text",
+				Name:    "免费文本源（iosapp.icu，低优先级）",
+				Enabled: true,
+				Options: map[string]any{
+					"urls": []string{
+						"https://free.iosapp.icu/go-rod/1.txt",
+						"https://free.iosapp.icu/go-rod/2.txt",
+						"https://free.iosapp.icu/go-rod/3.txt",
+					},
+				},
+			},
 		},
 	}
 }

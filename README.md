@@ -8,7 +8,8 @@ AppleShare Hub 是一个使用 Go + Gin 构建的苹果账号分发状态服务�
 - 通过 `Provider` 接口抽象账号渠道，后续接入新的渠道时无需改动页面和 API。
 - 短时间缓存上游结果，避免每个用户访问都打上游接口。
 - 网页实时展示账号状态、可用数量、渠道健康度、状态说明。
-- 内置 iOS 26 登录/退出教程与 Apple 官方示意图。
+- 内置 iOS 26 登录/退出教程、Apple 官方示意图和 idfree.top 详细图文教程。
+- 已接入 sha.cx、翻墙男、小优 ID、云码酷、free.iosapp.icu 五类来源，后续可通过 `Provider` 继续扩展。
 - 附带架构文档、渠道接入文档和使用教程。
 
 ## 重要安全提示
@@ -53,6 +54,40 @@ go run .
       "name": "渠道 A（sha.cx）",
       "url": "https://d8p8e.sha.cx/51e8990f678655f7749dfa8c5598dfbd",
       "enabled": true
+    },
+    {
+      "id": "fanqiangnan_01",
+      "type": "fanqiangnan",
+      "name": "翻墙男（fanqiangnan）",
+      "url": "https://fanqiangnan.com/data_sync.php",
+      "enabled": true
+    },
+    {
+      "id": "idfree_01",
+      "type": "idfree",
+      "name": "小优 ID（idfree）",
+      "url": "https://idfree.top/",
+      "enabled": true
+    },
+    {
+      "id": "appleid_api_01",
+      "type": "appleid_api",
+      "name": "云码酷（appleid.uczyw.us）",
+      "url": "https://appleid.uczyw.us/api/accounts",
+      "enabled": true
+    },
+    {
+      "id": "iosapp_text_01",
+      "type": "iosapp_text",
+      "name": "免费文本源（iosapp.icu，低优先级）",
+      "enabled": true,
+      "options": {
+        "urls": [
+          "https://free.iosapp.icu/go-rod/1.txt",
+          "https://free.iosapp.icu/go-rod/2.txt",
+          "https://free.iosapp.icu/go-rod/3.txt"
+        ]
+      }
     }
   ]
 }
@@ -112,7 +147,7 @@ go run .
 ├── internal/
 │   ├── config/                   # 配置文件解析
 │   ├── model/                    # 账号、渠道、快照等数据模型
-│   ├── provider/                 # 渠道抽象与 sha.cx 实现
+│   ├── provider/                 # 渠道抽象与 sha.cx / fanqiangnan / idfree / appleid_api / iosapp_text 实现
 │   ├── service/                  # 缓存、聚合、状态计算
 │   └── httpapi/                  # Gin 路由与 API
 ├── web/                          # 内嵌前端页面
@@ -120,7 +155,7 @@ go run .
 │   └── assets/
 │       ├── app.js
 │       ├── styles.css
-│       └── guide/                # Apple 官方教程图片
+│       └── guide/                # Apple 官方与 idfree 教程图片
 └── docs/
     ├── ARCHITECTURE.md           # 架构设计
     ├── ACCOUNT_SOURCES.md        # 账号渠道接入

@@ -13,10 +13,14 @@ AppleShare Hub 分发的账号是共享 Apple ID，仅用于 **App Store 下载 
 ### 方式一：App Store 内登录
 
 1. 打开 **App Store**。
-2. 点击右上角 **头像图标**。
-3. 选择 **使用 Apple 账户登录**。
-4. 输入 AppleShare Hub 页面展示的 Apple ID 与密码。
+2. 点击右上角 **头像图标**，滑动页面到底部，选择 **退出登录**，先登出当前账号。
+3. 输入 AppleShare Hub 页面展示的 Apple ID 与密码。
+4. 如果遇到 **Apple ID 安全提示**，点击 **其他选项**，选择 **不升级**，跳过双重认证。
 5. 如果系统询问“是否更新 Apple ID 设置”，选择 **暂不更新 / 稍后**。
+
+![App Store 登录示意图（iOS 24.6 以下，参考小优 ID）](../web/assets/guide/idfree-login.png)
+
+![App Store 登录示意图（iOS 24.6 以上，参考小优 ID）](../web/assets/guide/idfree-login-ios24.png)
 
 ### 方式二：设置中登录
 
@@ -42,6 +46,14 @@ iOS 26 及之后版本，App Store 页面内不再提供媒体与购买项目退
 ## 4. 为什么要去设置退出
 
 媒体与购买项目账号属于 Apple 账户体系中的“媒体与购买项目”部分。iOS 26 把该部分的管理入口统一到了系统设置，App Store 内只保留下载与购买入口。如果在 App Store 里找不到退出按钮，或退出时提示需要前往设置，都是正常现象，请直接按上面的路径操作。
+
+## 4.1 登录后下载与配置
+
+1. 成功登录后，在 App Store 搜索需要的 App，例如 **Shadowrocket**。
+2. 如果显示付费提示，请无视并继续，部分共享账号已支持直接下载。
+3. 应用安装完成后，返回软件内部配置或导入节点信息。
+
+详细图文教程参考：<https://idfree.top/>
 
 ## 5. 使用检查清单
 

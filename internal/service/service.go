@@ -114,6 +114,9 @@ func (s *Service) build(ctx context.Context) model.Snapshot {
 		if snap.Accounts[i].Status != snap.Accounts[j].Status {
 			return accountStatusRank(snap.Accounts[i].Status) < accountStatusRank(snap.Accounts[j].Status)
 		}
+		if snap.Accounts[i].Priority != snap.Accounts[j].Priority {
+			return snap.Accounts[i].Priority < snap.Accounts[j].Priority
+		}
 		return snap.Accounts[i].Channel < snap.Accounts[j].Channel
 	})
 	sort.Slice(snap.Channels, func(i, j int) bool {

@@ -19,8 +19,16 @@ flowchart LR
     Service --> Registry[Provider Registry]
     Registry --> P1[sha.cx Provider 1]
     Registry --> P2[sha.cx Provider 2]
+    Registry --> P3[fanqiangnan Provider]
+    Registry --> P4[idfree Provider]
+    Registry --> P5[appleid_api Provider]
+    Registry --> P6[iosapp_text Provider]
     P1 --> S1[上游链接 A]
     P2 --> S2[上游链接 B]
+    P3 --> S3[data_sync.php]
+    P4 --> S4[idfree.top 三步会话]
+    P5 --> S5[appleid.uczyw.us]
+    P6 --> S6[free.iosapp.icu 1-3.txt]
     Service --> Cache[(30s 内存缓存)]
 ```
 
@@ -50,6 +58,16 @@ type Factory func(cfg Config) (Provider, error)
 ```
 
 `Provider` 只需要负责“从自己的上游获取并转换成 `model.Account`”。不同渠道的 API 响应、HTML 结构、状态码含义都封装在各自的 Provider 内。
+
+当前已实现的渠道类型：
+
+| Provider 类型 | 实现文件 | 上游特点 |
+| --- | --- | --- |
+| `sha_cx` | `shacx.go` | HTML 内嵌 JSON |
+| `fanqiangnan` | `fanqiangnan.go` | 无鉴权 JSON |
+| `idfree` | `idfree.go` | Cookie + X-Token + 浏览器头三步会话 |
+| `appleid_api` | `appleid_api.go` | 无鉴权 JSON |
+| `iosapp_text` | `iosapp_text.go` | 1-3 个纯文本文件，无检查时间，低优先级 |
 
 新增渠道的步骤：
 
@@ -123,5 +141,6 @@ Gin 路由层：
 
 - 账号密码由上游渠道提供，本项目不存储、不修改账号数据。
 - 页面显著提示只在 App Store 登录、iOS 26 从设置退出。
+- 不直接调用 Apple 登录接口批量验证账号，避免触发风控和锁机；可用性以上游检测时间与状态为准。
 - 如接入的渠道需要密钥，建议把密钥放到环境变量或 `config.local.json`，不要提交到仓库。
 - 建议部署在可信网络，并为对外服务配置 HTTPS 与访问频率限制。

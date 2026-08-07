@@ -227,6 +227,10 @@ h2 {
   border-bottom: 1px solid var(--line);
 }
 
+.section-head > div {
+  min-width: 0;
+}
+
 .section-head.compact {
   margin-bottom: 14px;
 }
@@ -504,6 +508,7 @@ h2 {
   grid-template-columns: 28px minmax(0, 1fr);
   gap: 10px;
   align-items: start;
+  min-width: 0;
 }
 
 .guide-steps li::before {
@@ -528,11 +533,20 @@ h2 {
 .guide-steps span {
   color: var(--muted);
   font-size: 13px;
+  overflow-wrap: anywhere;
 }
 
 .guide-steps strong,
 .guide-steps span {
   grid-column: 2;
+  min-width: 0;
+}
+
+.guide-figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
 }
 
 figure {
@@ -557,6 +571,15 @@ figcaption {
   margin: 0;
   color: var(--muted);
   font-size: 12px;
+}
+
+.guide-source a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.guide-source a:hover {
+  text-decoration: underline;
 }
 
 .footer {
@@ -625,6 +648,10 @@ figcaption {
   .cred-row {
     grid-template-columns: 1fr;
     gap: 2px;
+  }
+
+  .guide-figures {
+    grid-template-columns: 1fr;
   }
 
   .updated {
