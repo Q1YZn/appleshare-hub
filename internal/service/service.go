@@ -69,14 +69,15 @@ func (s *Service) build(ctx context.Context) model.Snapshot {
 
 	results := make(chan result, len(s.providers))
 	var wg sync.WaitGroup
-	for _, p := range s.providers {
+	for i, p := range s.providers {
 		wg.Add(1)
-		go func(p provider.Provider) {
+		go func(i int, p provider.Provider) {
 			defer wg.Done()
 			accounts, err := p.Fetch(ctx)
 			state := model.ChannelState{
 				ID:        p.ID(),
 				Name:      p.Name(),
+				Order:     i,
 				Status:    "ok",
 				UpdatedAt: time.Now().Format(time.RFC3339),
 			}
@@ -89,7 +90,7 @@ func (s *Service) build(ctx context.Context) model.Snapshot {
 				state.Status = "empty"
 			}
 			results <- result{channel: state, accounts: accounts}
-		}(p)
+		}(i, p)
 	}
 	wg.Wait()
 	close(results)
@@ -120,6 +121,9 @@ func (s *Service) build(ctx context.Context) model.Snapshot {
 		return snap.Accounts[i].Channel < snap.Accounts[j].Channel
 	})
 	sort.Slice(snap.Channels, func(i, j int) bool {
+		if snap.Channels[i].Order != snap.Channels[j].Order {
+			return snap.Channels[i].Order < snap.Channels[j].Order
+		}
 		return snap.Channels[i].ID < snap.Channels[j].ID
 	})
 

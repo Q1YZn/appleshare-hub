@@ -8,10 +8,13 @@
   var generatedAt = document.getElementById("generatedAt");
   var statusLegend = document.getElementById("statusLegend");
   var channelList = document.getElementById("channelList");
+  var countryFilter = document.getElementById("countryFilter");
+  var channelFilter = document.getElementById("channelFilter");
 
   var snapshot = null;
   var refreshTimer = null;
   var noticeTimer = null;
+  var selectedChannel = "";
 
   function statusClass(status) {
     return String(status || "unknown").toLowerCase();
@@ -26,6 +29,60 @@
       return value;
     }
     return date.toLocaleString("zh-CN", { hour12: false });
+  }
+
+  function channelLetter(index) {
+    return String.fromCharCode(65 + index);
+  }
+
+  function channelMeta(id) {
+    var channels = snapshot ? snapshot.channels : [];
+    for (var i = 0; i < channels.length; i++) {
+      if (channels[i].id === id) {
+        return { letter: channelLetter(i), name: channels[i].name };
+      }
+    }
+    return null;
+  }
+
+  function countryDisplay(account) {
+    return account.country || "未知地区";
+  }
+
+  function renderFilters() {
+    if (!snapshot) {
+      return;
+    }
+
+    var accounts = snapshot.accounts || [];
+    var countries = {};
+    accounts.forEach(function (account) {
+      var name = countryDisplay(account);
+      countries[name] = (countries[name] || 0) + 1;
+    });
+    var countryNames = Object.keys(countries).sort(function (a, b) {
+      return a.localeCompare(b, "zh-CN");
+    });
+    var previousCountry = countryFilter.value;
+    countryFilter.innerHTML = '<option value="">全部地区</option>' + countryNames.map(function (name) {
+      return '<option value="' + escapeAttr(name) + '">' + escapeHtml(name) + "（" + countries[name] + "）</option>";
+    }).join("");
+    if (countryNames.indexOf(previousCountry) !== -1) {
+      countryFilter.value = previousCountry;
+    } else {
+      countryFilter.value = "";
+    }
+
+    var channels = snapshot.channels || [];
+    var previousChannel = selectedChannel || channelFilter.value;
+    channelFilter.innerHTML = '<option value="">全部渠道</option>' + channels.map(function (channel, index) {
+      return '<option value="' + escapeAttr(channel.id) + '">' + escapeHtml("渠道" + channelLetter(index)) + "</option>";
+    }).join("");
+    var stillValid = channels.some(function (channel) {
+      return channel.id === previousChannel;
+    });
+    selectedChannel = stillValid ? previousChannel : "";
+    channelFilter.value = selectedChannel;
   }
 
   function renderMetrics() {
@@ -54,11 +111,22 @@
       return;
     }
     var accounts = snapshot.accounts || [];
+    var channelId = selectedChannel || channelFilter.value;
+    var countryId = countryFilter.value;
     if (onlyAvailable.checked) {
       accounts = accounts.filter(function (account) {
         return account.status === "available";
       });
     }
+    accounts = accounts.filter(function (account) {
+      if (countryId && countryDisplay(account) !== countryId) {
+        return false;
+      }
+      if (channelId && account.channel !== channelId) {
+        return false;
+      }
+      return true;
+    });
 
     accountList.innerHTML = accounts.map(function (account) {
       var statusCls = statusClass(account.status);
@@ -68,13 +136,18 @@
           ? "account-card is-unavailable"
           : "account-card";
       var password = account.password ? account.password : "暂无";
+      var tag = account.channel_name || account.channel;
+      var meta = channelMeta(account.channel);
+      if (meta) {
+        tag = "渠道" + meta.letter + " · " + meta.name;
+      }
 
       return (
         '<article class="' + cardCls + '">' +
         '<div class="account-top">' +
         '<span class="status-badge ' + statusCls + '">' + escapeHtml(account.status_label || "未知") + "</span>" +
         '<span class="country">' + escapeHtml(account.country || "未知地区") + "</span>" +
-        '<span class="channel-tag">' + escapeHtml(account.channel_name || account.channel) + "</span>" +
+        '<span class="channel-tag">' + escapeHtml(tag) + "</span>" +
         '<span class="updated">' + escapeHtml(account.updated_at || "") + "</span>" +
         "</div>" +
         '<div class="cred">' +
@@ -99,18 +172,16 @@
     if (!snapshot) {
       return;
     }
-    channelList.innerHTML = (snapshot.channels || []).map(function (channel) {
-      var label = { ok: "正常", empty: "无账号", error: "获取失败" }[channel.status] || channel.status;
-      var error = channel.error
-        ? '<p class="channel-error">' + escapeHtml(channel.error) + "</p>"
-        : "";
+    channelList.innerHTML = (snapshot.channels || []).map(function (channel, index) {
+      var active = selectedChannel === channel.id ? " is-active" : "";
+      var stateLabel = { ok: "正常", empty: "无账号", error: "获取失败" }[channel.status] || channel.status;
+      var detail = channel.error ? "：" + channel.error : "";
+      var title = escapeAttr(channel.name + "：" + stateLabel + detail);
       return (
-        '<div class="channel-item">' +
-        '<div class="channel-item-head"><strong>' + escapeHtml(channel.name) + "</strong>" +
-        '<span class="channel-status ' + statusClass(channel.status) + '">' + label + "</span></div>" +
-        '<span class="channel-meta">' + channel.account_count + " 个账号 · " + escapeHtml(formatTime(channel.updated_at)) + "</span>" +
-        error +
-        "</div>"
+        '<button class="channel-pill' + active + '" type="button" data-channel="' + escapeAttr(channel.id) + '" title="' + title + '">' +
+        '<i class="dot ' + statusClass(channel.status) + '"></i>' +
+        escapeHtml("渠道" + channelLetter(index)) +
+        "</button>"
       );
     }).join("");
   }
@@ -198,6 +269,7 @@
       snapshot = await response.json();
       renderMetrics();
       renderLegend();
+      renderFilters();
       renderChannels();
       renderAccounts();
       scheduleRefresh(snapshot.cache_ttl_seconds);
@@ -213,6 +285,12 @@
 
   refreshBtn.addEventListener("click", load);
   onlyAvailable.addEventListener("change", renderAccounts);
+  countryFilter.addEventListener("change", renderAccounts);
+  channelFilter.addEventListener("change", function () {
+    selectedChannel = channelFilter.value;
+    renderChannels();
+    renderAccounts();
+  });
 
   accountList.addEventListener("click", function (event) {
     var button = event.target.closest("button[data-copy], button[data-copy-both]");
@@ -223,6 +301,17 @@
     if (text) {
       copyText(text, button);
     }
+  });
+
+  channelList.addEventListener("click", function (event) {
+    var button = event.target.closest("button[data-channel]");
+    if (!button) {
+      return;
+    }
+    selectedChannel = selectedChannel === button.dataset.channel ? "" : button.dataset.channel;
+    channelFilter.value = selectedChannel;
+    renderChannels();
+    renderAccounts();
   });
 
   load();

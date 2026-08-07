@@ -8,6 +8,7 @@ AppleShare Hub 是一个使用 Go + Gin 构建的苹果账号分发状态服务�
 - 通过 `Provider` 接口抽象账号渠道，后续接入新的渠道时无需改动页面和 API。
 - 短时间缓存上游结果，避免每个用户访问都打上游接口。
 - 网页实时展示账号状态、可用数量、渠道健康度、状态说明。
+- 支持按国家/地区和渠道筛选，渠道状态以 A-F 字母紧凑展示，渠道 A 固定在最前。
 - 内置 iOS 26 登录/退出教程、Apple 官方示意图和 idfree.top 详细图文教程。
 - 已接入 sha.cx、翻墙男、小优 ID、云码酷、free.iosapp.icu 五类来源，后续可通过 `Provider` 继续扩展。
 - 附带架构文档、渠道接入文档和使用教程。
@@ -121,7 +122,16 @@ go run .
       "source_url": "https://d8p8e.sha.cx/..."
     }
   ],
-  "channels": [],
+  "channels": [
+    {
+      "id": "sha_cx_01",
+      "name": "渠道 A（sha.cx）",
+      "order": 0,
+      "status": "ok",
+      "account_count": 1,
+      "updated_at": "2026-08-07T01:00:00+08:00"
+    }
+  ],
   "warnings": [],
   "status_legend": [],
   "available_count": 1,

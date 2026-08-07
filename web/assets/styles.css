@@ -248,6 +248,33 @@ h2 {
   flex-wrap: wrap;
 }
 
+.filter-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.filter-select {
+  min-height: 34px;
+  max-width: 150px;
+  padding: 4px 28px 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.filter-select:focus {
+  outline: 2px solid var(--accent-soft);
+  border-color: var(--accent);
+}
+
 .checkline {
   display: inline-flex;
   align-items: center;
@@ -435,58 +462,43 @@ h2 {
 }
 
 .channel-list {
-  display: grid;
-  gap: 10px;
-}
-
-.channel-item {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 12px;
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
-.channel-item-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.channel-item-head strong {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  font-size: 14px;
-}
-
-.channel-status {
+.channel-pill {
+  min-height: 28px;
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
   font-size: 12px;
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
-.channel-status.ok {
-  color: var(--ok);
+.channel-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
-.channel-status.empty {
-  color: var(--muted);
+.channel-pill.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
-.channel-status.error {
-  color: var(--danger);
-}
-
-.channel-meta {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.channel-error {
-  margin: 0;
-  color: var(--danger);
-  font-size: 12px;
-  overflow-wrap: anywhere;
+.channel-pill .dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
 }
 
 .guide-panel {
@@ -643,6 +655,14 @@ figcaption {
 
   .section-head {
     display: grid;
+  }
+
+  .section-controls {
+    gap: 10px;
+  }
+
+  .filter-select {
+    max-width: 118px;
   }
 
   .cred-row {

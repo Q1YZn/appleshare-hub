@@ -31,6 +31,7 @@ type Account struct {
 type ChannelState struct {
 	ID           string `json:"id"`
 	Name         string `json:"name"`
+	Order        int    `json:"order"`
 	Status       string `json:"status"`
 	Error        string `json:"error,omitempty"`
 	AccountCount int    `json:"account_count"`
