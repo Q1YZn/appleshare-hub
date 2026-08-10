@@ -4,3 +4,9 @@ config.local.json
 .tools/
 bin/
 tmp/
+node_modules/
+.wrangler/
+.dev.vars
+dist/
+gcm-diagnose.log
+logs/

@@ -1,0 +1,10 @@
+name = "appleshare-hub-cron"
+main = "worker/cron.js"
+compatibility_date = "2025-09-01"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "appleshare-hub"

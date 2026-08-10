@@ -1,0 +1,7 @@
+name = "appleshare-hub"
+compatibility_date = "2025-09-01"
+pages_build_output_dir = "web"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "appleshare-hub"

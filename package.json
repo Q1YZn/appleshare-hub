@@ -1,0 +1,16 @@
+{
+  "name": "appleshare-hub-cloudflare",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "pages:dev": "wrangler pages dev web --r2 BUCKET=appleshare-hub",
+    "pages:deploy": "wrangler pages deploy web",
+    "worker:dev": "wrangler dev --config wrangler.worker.toml --test-scheduled",
+    "worker:deploy": "wrangler deploy --config wrangler.worker.toml",
+    "check:providers": "node scripts/check-providers.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.30.0"
+  }
+}

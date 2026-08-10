@@ -1,0 +1,535 @@
+const DEFAULT_USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
+
+function timeoutMs(cfg, fallbackSeconds) {
+  const raw = cfg && cfg.options && cfg.options.request_timeout_seconds;
+  const number = Number(raw);
+  return (Number.isFinite(number) && number > 0 ? number : fallbackSeconds) * 1000;
+}
+
+function decodeBytes(bytes) {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch (_) {
+    // Some text sources are GBK; fall back to a lenient utf-8 read when GBK is unavailable.
+  }
+  try {
+    return new TextDecoder("gbk").decode(bytes);
+  } catch (_) {
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+}
+
+async function requestBytes(url, { method = "GET", headers = {}, body = null, timeoutMs = 15000 } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      method,
+      headers,
+      body,
+      redirect: "follow",
+      signal: controller.signal
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} for ${url}`);
+    }
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    return { bytes, response };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function requestText(url, options) {
+  const { bytes } = await requestBytes(url, options);
+  return decodeBytes(bytes);
+}
+
+async function requestJSON(url, options) {
+  const text = await requestText(url, options);
+  return JSON.parse(text);
+}
+
+function stringList(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
+function collectShaCXUrls(cfg) {
+  const urls = [];
+  if (typeof cfg.url === "string" && cfg.url.trim()) {
+    urls.push(cfg.url.trim());
+  }
+  if (cfg.options && cfg.options.urls) {
+    urls.push(...stringList(cfg.options.urls));
+  }
+  return [...new Set(urls)];
+}
+
+function mapShaStatus(raw) {
+  switch (raw) {
+    case 0:
+      return { status: "checking", label: "检测中", message: "账号正在检测，请稍后刷新" };
+    case 1:
+      return { status: "available", label: "可用", message: "检测正常，可登录 App Store" };
+    case 2:
+      return { status: "unavailable", label: "异常", message: "账号异常，请勿使用" };
+    case 3:
+      return { status: "pending", label: "待检测", message: "账号等待检测" };
+    default:
+      return { status: "unknown", label: "未知", message: "未知状态" };
+  }
+}
+
+async function fetchShaCX(cfg) {
+  const urls = collectShaCXUrls(cfg);
+  if (urls.length === 0) {
+    throw new Error(`sha_cx provider "${cfg.id}" requires url or options.urls`);
+  }
+
+  const results = await Promise.allSettled(
+    urls.map(async (url) => {
+      const html = await requestText(url, {
+        timeoutMs: timeoutMs(cfg, 15),
+        headers: {
+          "User-Agent": DEFAULT_USER_AGENT,
+          Accept: "text/html,application/xhtml+xml"
+        }
+      });
+      const match = html.match(/ad\s*=\s*'([^']*)'/s);
+      if (!match) {
+        throw new Error("sha.cx payload not found in page");
+      }
+      const payload = match[1].trim();
+      if (!payload) {
+        throw new Error("sha.cx payload is empty");
+      }
+      let raw;
+      try {
+        raw = JSON.parse(payload);
+      } catch (error) {
+        throw new Error(`parse account payload: ${error.message}`);
+      }
+      return raw.map((item) => ({
+        id: `${cfg.id}:${item.username}`,
+        channel: cfg.id,
+        channel_name: cfg.name,
+        country: item.country || "",
+        username: item.username || "",
+        password: item.password || "",
+        ...mapShaStatus(item.status),
+        raw_status: item.status,
+        updated_at: item.time || "",
+        source_url: url
+      }));
+    })
+  );
+
+  const accounts = [];
+  const seen = new Set();
+  const errors = [];
+  for (const result of results) {
+    if (result.status === "rejected") {
+      errors.push(result.reason instanceof Error ? result.reason.message : String(result.reason));
+      continue;
+    }
+    for (const account of result.value) {
+      if (!account.username || seen.has(account.username)) {
+        continue;
+      }
+      seen.add(account.username);
+      accounts.push(account);
+    }
+  }
+  if (errors.length > 0) {
+    throw new Error(`fetch ${errors.length}/${urls.length} sha.cx sources: ${errors.join("; ")}`);
+  }
+  return accounts;
+}
+
+function mapTextStatus(raw, normalMessage, abnormalMessage, unknownMessage) {
+  const text = String(raw || "");
+  if (text.includes("正常")) {
+    return { status: "available", label: "可用", message: normalMessage };
+  }
+  if (text.includes("异常") || text.includes("失败")) {
+    return { status: "unavailable", label: "异常", message: abnormalMessage };
+  }
+  return { status: "pending", label: "待检测", message: unknownMessage };
+}
+
+async function fetchFanqiangnan(cfg) {
+  if (!cfg.url) {
+    throw new Error(`fanqiangnan provider "${cfg.id}" requires url`);
+  }
+  const raw = await requestJSON(cfg.url, {
+    timeoutMs: timeoutMs(cfg, 15),
+    headers: {
+      "User-Agent": DEFAULT_USER_AGENT,
+      Accept: "application/json"
+    }
+  });
+  if (raw.success !== true) {
+    throw new Error("fanqiangnan response success=false");
+  }
+
+  const groups = Object.keys((raw.data && raw.data.accounts) || {});
+  groups.sort();
+  const accounts = [];
+  for (const group of groups) {
+    for (const item of raw.data.accounts[group] || []) {
+      const mapped = mapTextStatus(
+        item.status,
+        "上游检测正常",
+        "上游检测异常",
+        "上游暂未提供状态"
+      );
+      const country = String(item.regionName || "").trim() || String(item.region || "").trim();
+      accounts.push({
+        id: `${cfg.id}:${group}:${item.id}`,
+        channel: cfg.id,
+        channel_name: cfg.name,
+        country,
+        username: String(item.fullEmail || "").trim(),
+        password: item.password || "",
+        ...mapped,
+        updated_at: item.checkTime || "",
+        source_url: cfg.url
+      });
+    }
+  }
+  return accounts;
+}
+
+function parseSetCookie(line) {
+  const parts = line.split(";");
+  const pair = (parts[0] || "").trim();
+  const equals = pair.indexOf("=");
+  if (equals === -1) {
+    return null;
+  }
+  const name = pair.slice(0, equals).trim();
+  const value = pair.slice(equals + 1).trim();
+  let maxAge = null;
+  let expires = null;
+  for (const attribute of parts.slice(1)) {
+    const separator = attribute.indexOf("=");
+    const key = (separator === -1 ? attribute : attribute.slice(0, separator)).trim().toLowerCase();
+    const rawValue = separator === -1 ? "" : attribute.slice(separator + 1).trim();
+    if (key === "max-age") {
+      maxAge = Number(rawValue);
+    }
+    if (key === "expires") {
+      const parsed = Date.parse(rawValue);
+      expires = Number.isNaN(parsed) ? null : parsed;
+    }
+  }
+  if (maxAge === 0 || (expires !== null && expires < Date.now())) {
+    return { name, remove: true };
+  }
+  return { name, value, remove: false };
+}
+
+function createCookieJar() {
+  const cookies = new Map();
+  return {
+    capture(response) {
+      const headers = response.headers;
+      let values = [];
+      if (typeof headers.getSetCookie === "function") {
+        values = headers.getSetCookie();
+      }
+      if (values.length === 0 && headers.get("set-cookie")) {
+        values = [headers.get("set-cookie")];
+      }
+      for (const line of values) {
+        const cookie = parseSetCookie(line);
+        if (!cookie) {
+          continue;
+        }
+        if (cookie.remove) {
+          cookies.delete(cookie.name);
+        } else {
+          cookies.set(cookie.name, cookie.value);
+        }
+      }
+    },
+    header() {
+      return [...cookies.entries()]
+        .map(([name, value]) => `${name}=${value}`)
+        .join("; ");
+    }
+  };
+}
+
+function idfreeBaseHeaders(baseURL) {
+  return {
+    "User-Agent": DEFAULT_USER_AGENT,
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    Referer: `${baseURL}/`,
+    Origin: baseURL,
+    "X-Requested-With": "XMLHttpRequest",
+    "Cache-Control": "no-cache"
+  };
+}
+
+async function fetchIdFree(cfg) {
+  const baseURL = String(cfg.url || "").trim().replace(/\/+$/, "");
+  if (!baseURL) {
+    throw new Error(`idfree provider "${cfg.id}" requires url`);
+  }
+  const jar = createCookieJar();
+  const timeout = timeoutMs(cfg, 20);
+
+  async function idfreeRequest(path, extraHeaders = {}, method = "GET", body = null) {
+    const headers = { ...idfreeBaseHeaders(baseURL), ...extraHeaders };
+    const cookie = jar.header();
+    if (cookie) {
+      headers.Cookie = cookie;
+    }
+    const { bytes, response } = await requestBytes(`${baseURL}${path}`, {
+      method,
+      headers,
+      body,
+      timeoutMs: timeout
+    });
+    jar.capture(response);
+    return bytes;
+  }
+
+  await idfreeRequest("/");
+  const page = decodeBytes(await idfreeRequest("/"));
+  const tokenMatch = page.match(/<meta name="x-token" content="([^"]+)"/i);
+  if (!tokenMatch) {
+    throw new Error("idfree x-token not found in page");
+  }
+  const token = tokenMatch[1].trim();
+  if (!token) {
+    throw new Error("idfree x-token is empty");
+  }
+
+  await idfreeRequest(
+    "/api/session_verify.php",
+    {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-Token": token
+    },
+    "POST",
+    ""
+  );
+
+  const body = decodeBytes(
+    await idfreeRequest("/api/accounts.php", {
+      Accept: "application/json, text/javascript, */*; q=0.01",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+      "Sec-Fetch-Dest": "empty",
+      "Sec-Fetch-Mode": "cors",
+      "Sec-Fetch-Site": "same-origin",
+      "X-Token": token
+    })
+  );
+  if (body.includes("INVALID_BROWSER")) {
+    throw new Error("idfree rejected browser headers");
+  }
+
+  let raw;
+  try {
+    raw = JSON.parse(body);
+  } catch (error) {
+    throw new Error(`parse idfree response: ${error.message}`);
+  }
+
+  return raw.map((item) => {
+    const status = item.status === true;
+    const message = String(item.message || "").trim();
+    return {
+      id: `${cfg.id}:${item.id}`,
+      channel: cfg.id,
+      channel_name: cfg.name,
+      country: String(item.region_display || "").trim(),
+      username: String(item.username || "").trim(),
+      password: item.password || "",
+      status: status ? "available" : "unavailable",
+      status_label: status ? "可用" : "异常",
+      status_message: status
+        ? message || "检测正常，可登录 App Store"
+        : message || "账号异常，请勿使用",
+      updated_at: item.last_check || "",
+      source_url: `${baseURL}/`
+    };
+  });
+}
+
+async function fetchAppleidAPI(cfg) {
+  if (!cfg.url) {
+    throw new Error(`appleid_api provider "${cfg.id}" requires url`);
+  }
+  const raw = await requestJSON(cfg.url, {
+    timeoutMs: timeoutMs(cfg, 15),
+    headers: {
+      "User-Agent": DEFAULT_USER_AGENT,
+      Accept: "application/json"
+    }
+  });
+  if (raw.success !== true) {
+    throw new Error("appleid_api response success=false");
+  }
+
+  return (raw.data || []).map((item) => {
+    const mapped = mapTextStatus(
+      item.status,
+      "检测正常，可登录 App Store",
+      "账号异常，请勿使用",
+      "上游暂未提供状态"
+    );
+    const accountID = String(item.id || "").trim() || String(item.email || "").trim();
+    return {
+      id: `${cfg.id}:${accountID}`,
+      channel: cfg.id,
+      channel_name: cfg.name,
+      country: String(item.region || "").trim(),
+      username: String(item.email || "").trim(),
+      password: item.password || "",
+      ...mapped,
+      updated_at: item.timestamp || item.time || "",
+      source_url: cfg.url
+    };
+  });
+}
+
+function parseIOSAppText(content) {
+  const account = {};
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.replace(/^\uFEFF/, "").trim();
+    if (!line) {
+      continue;
+    }
+    let separator = line.indexOf(":");
+    if (separator === -1) {
+      separator = line.indexOf("：");
+    }
+    if (separator === -1) {
+      continue;
+    }
+    const key = line.slice(0, separator).trim();
+    const value = line.slice(separator + 1).trim();
+    if (key === "类型") {
+      account.Kind = value;
+    } else if (key === "账号") {
+      account.Account = value;
+    } else if (key === "密码") {
+      account.Password = value;
+    } else if (key === "检查时间") {
+      account.CheckTime = value;
+    } else if (key === "状态") {
+      account.Status = value;
+    }
+  }
+  if (!account.Account) {
+    throw new Error("账号字段缺失");
+  }
+  return account;
+}
+
+function mapIOSAppStatus(raw, checkTime) {
+  const text = String(raw || "");
+  if (text.includes("可用")) {
+    return {
+      status: "available",
+      label: "可用",
+      message: String(checkTime || "").trim()
+        ? "文本源标记可用"
+        : "文本源标记可用，但未提供检查时间，优先使用带检测时间的账号"
+    };
+  }
+  if (text.includes("异常") || text.includes("失败")) {
+    return {
+      status: "unavailable",
+      label: "异常",
+      message: "文本源标记异常，请勿使用"
+    };
+  }
+  return {
+    status: "pending",
+    label: "待检测",
+    message: "文本源未提供明确状态"
+  };
+}
+
+async function fetchIOSAppText(cfg) {
+  const urls = stringList(cfg.options && cfg.options.urls);
+  if (urls.length === 0 && typeof cfg.url === "string" && cfg.url.trim()) {
+    urls.push(cfg.url.trim());
+  }
+  if (urls.length === 0) {
+    throw new Error(`iosapp_text provider "${cfg.id}" requires options.urls`);
+  }
+
+  const results = await Promise.allSettled(
+    urls.map(async (url) => {
+      const text = await requestText(url, {
+        timeoutMs: timeoutMs(cfg, 15),
+        headers: { "User-Agent": DEFAULT_USER_AGENT }
+      });
+      const raw = parseIOSAppText(text);
+      const accountID = String(url.split("/").pop() || "").replace(/\.[^.]+$/, "");
+      return {
+        id: `${cfg.id}:${accountID || String(urls.indexOf(url) + 1)}`,
+        channel: cfg.id,
+        channel_name: cfg.name,
+        country: "",
+        username: String(raw.Account || "").trim(),
+        password: String(raw.Password || "").trim(),
+        ...mapIOSAppStatus(raw.Status, raw.CheckTime),
+        priority: 1,
+        updated_at: String(raw.CheckTime || "").trim(),
+        source_url: url
+      };
+    })
+  );
+
+  const accounts = [];
+  const errors = [];
+  for (const result of results) {
+    if (result.status === "rejected") {
+      errors.push(result.reason instanceof Error ? result.reason.message : String(result.reason));
+      continue;
+    }
+    accounts.push(result.value);
+  }
+  if (errors.length > 0) {
+    throw new Error(`iosapp_text partial failure: ${errors.join("; ")}`);
+  }
+  return accounts;
+}
+
+export function createProvider(cfg) {
+  switch (cfg.type) {
+    case "sha_cx":
+      return { id: cfg.id, name: cfg.name, fetch: () => fetchShaCX(cfg) };
+    case "fanqiangnan":
+      return { id: cfg.id, name: cfg.name, fetch: () => fetchFanqiangnan(cfg) };
+    case "idfree":
+      return { id: cfg.id, name: cfg.name, fetch: () => fetchIdFree(cfg) };
+    case "appleid_api":
+      return { id: cfg.id, name: cfg.name, fetch: () => fetchAppleidAPI(cfg) };
+    case "iosapp_text":
+      return { id: cfg.id, name: cfg.name, fetch: () => fetchIOSAppText(cfg) };
+    default:
+      throw new Error(`unknown provider type "${cfg.type}"`);
+  }
+}
+
+export function buildProviders(config) {
+  return config.providers.map((provider) => createProvider(provider));
+}
