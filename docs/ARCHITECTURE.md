@@ -111,7 +111,7 @@ Gin 路由层：
 5. Provider Registry 并发调用所有 Provider 的 `Fetch`。
 6. 各 Provider 请求各自上游并转换成 `model.Account`。
 7. Service 聚合结果、计算计数、写入缓存。
-8. Gin 返回 JSON，前端渲染账号卡片、地区/渠道筛选和渠道健康度。
+8. Gin 返回 JSON，前端渲染账号卡片、地区/渠道筛选、渠道健康度；账号列表在前端按每页 8 条分页。
 
 ## 5. 缓存策略
 

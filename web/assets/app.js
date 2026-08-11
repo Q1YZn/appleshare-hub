@@ -3,6 +3,7 @@
 
   var accountList = document.getElementById("accountList");
   var emptyState = document.getElementById("emptyState");
+  var pagination = document.getElementById("pagination");
   var onlyAvailable = document.getElementById("onlyAvailable");
   var refreshBtn = document.getElementById("refreshBtn");
   var generatedAt = document.getElementById("generatedAt");
@@ -15,6 +16,8 @@
   var refreshTimer = null;
   var noticeTimer = null;
   var selectedChannel = "";
+  var currentPage = 1;
+  var PAGE_SIZE = 8;
 
   function statusClass(status) {
     return String(status || "unknown").toLowerCase();
@@ -128,7 +131,13 @@
       return true;
     });
 
-    accountList.innerHTML = accounts.map(function (account) {
+    var totalPages = Math.max(1, Math.ceil(accounts.length / PAGE_SIZE));
+    if (currentPage > totalPages) {
+      currentPage = totalPages;
+    }
+    var pageAccounts = accounts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+    accountList.innerHTML = pageAccounts.map(function (account) {
       var statusCls = statusClass(account.status);
       var cardCls = account.status === "available"
         ? "account-card is-available"
@@ -165,7 +174,57 @@
     }).join("");
 
     emptyState.hidden = accounts.length !== 0;
+    renderPagination(accounts.length, totalPages);
     iconify();
+  }
+
+  function renderPagination(totalCount, totalPages) {
+    if (!pagination) {
+      return;
+    }
+    if (totalCount === 0 || totalPages <= 1) {
+      pagination.innerHTML = "";
+      pagination.hidden = true;
+      return;
+    }
+
+    var items = [];
+    var start = Math.max(1, currentPage - 2);
+    var end = Math.min(totalPages, start + 4);
+    start = Math.max(1, end - 4);
+    if (start > 1) {
+      items.push(1);
+      if (start > 2) {
+        items.push("gap");
+      }
+    }
+    for (var page = start; page <= end; page++) {
+      items.push(page);
+    }
+    if (end < totalPages) {
+      if (end < totalPages - 1) {
+        items.push("gap");
+      }
+      items.push(totalPages);
+    }
+
+    var html = '<button class="pagination-button" type="button" data-page="' + (currentPage - 1) + '"' +
+      (currentPage === 1 ? " disabled" : "") + '><i data-lucide="chevron-left"></i><span>上一页</span></button>';
+    html += '<span class="pagination-summary">' + currentPage + " / " + totalPages + "</span>";
+    items.forEach(function (item) {
+      if (item === "gap") {
+        html += '<span class="pagination-gap">...</span>';
+        return;
+      }
+      var active = item === currentPage ? " is-current" : "";
+      html += '<button class="pagination-button' + active + '" type="button" data-page="' + item + '"' +
+        (item === currentPage ? ' aria-current="page"' : "") + ">" + item + "</button>";
+    });
+    html += '<button class="pagination-button" type="button" data-page="' + (currentPage + 1) + '"' +
+      (currentPage === totalPages ? " disabled" : "") + '><span>下一页</span><i data-lucide="chevron-right"></i></button>';
+
+    pagination.innerHTML = html;
+    pagination.hidden = false;
   }
 
   function renderChannels() {
@@ -284,10 +343,17 @@
   }
 
   refreshBtn.addEventListener("click", load);
-  onlyAvailable.addEventListener("change", renderAccounts);
-  countryFilter.addEventListener("change", renderAccounts);
+  onlyAvailable.addEventListener("change", function () {
+    currentPage = 1;
+    renderAccounts();
+  });
+  countryFilter.addEventListener("change", function () {
+    currentPage = 1;
+    renderAccounts();
+  });
   channelFilter.addEventListener("change", function () {
     selectedChannel = channelFilter.value;
+    currentPage = 1;
     renderChannels();
     renderAccounts();
   });
@@ -303,12 +369,26 @@
     }
   });
 
+  pagination.addEventListener("click", function (event) {
+    var button = event.target.closest("button[data-page]");
+    if (!button || button.disabled) {
+      return;
+    }
+    var page = parseInt(button.dataset.page, 10);
+    if (Number.isNaN(page) || page < 1) {
+      return;
+    }
+    currentPage = page;
+    renderAccounts();
+  });
+
   channelList.addEventListener("click", function (event) {
     var button = event.target.closest("button[data-channel]");
     if (!button) {
       return;
     }
     selectedChannel = selectedChannel === button.dataset.channel ? "" : button.dataset.channel;
+    currentPage = 1;
     channelFilter.value = selectedChannel;
     renderChannels();
     renderAccounts();

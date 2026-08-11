@@ -456,6 +456,74 @@ h2 {
   margin: 8px 0 0;
 }
 
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.pagination[hidden] {
+  display: none;
+}
+
+.pagination-button {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pagination-button:hover:not(:disabled):not(.is-current) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.pagination-button.is-current {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+  cursor: default;
+}
+
+.pagination-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.pagination-summary {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.pagination-gap {
+  color: var(--muted);
+  padding: 0 2px;
+}
+
 .side {
   display: grid;
   gap: 18px;
