@@ -8,11 +8,13 @@ import GuidePanel from "./components/GuidePanel.vue";
 import HeroHeader from "./components/HeroHeader.vue";
 import { useAnalytics } from "./composables/useAnalytics.js";
 import { useSnapshot } from "./composables/useSnapshot.js";
+import { useTheme } from "./composables/useTheme.js";
 import { channelLetter, formatTime } from "./utils/format.js";
 
 const PAGE_SIZE = 7;
 const { snapshot, loading, error, load } = useSnapshot();
 const { trackVisit } = useAnalytics();
+const { theme, setTheme } = useTheme();
 
 const onlyAvailable = ref(false);
 const selectedCountry = ref("");
@@ -147,7 +149,9 @@ if (import.meta.env.PROD) {
     :total-count="snapshot?.total_count || 0"
     :channel-count="channels.length"
     :loading="loading"
+    :theme="theme"
     @refresh="refresh"
+    @change-theme="setTheme"
   />
 
   <AlertStrip :warnings="warnings" />

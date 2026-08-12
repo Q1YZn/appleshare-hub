@@ -1,12 +1,23 @@
 <!doctype html>
 <html lang="zh-CN">
   <head>
+    <script>
+      try {
+        var savedTheme = localStorage.getItem("ash_theme_v1");
+        if (savedTheme !== "light" && savedTheme !== "dark" && savedTheme !== "auto") {
+          savedTheme = "auto";
+        }
+        document.documentElement.dataset.theme = savedTheme;
+      } catch (e) {
+        document.documentElement.dataset.theme = "auto";
+      }
+    </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light">
+    <meta name="color-scheme" content="light dark">
     <title>AppleShare Hub · 苹果账号分发状态</title>
-    <script type="module" crossorigin src="/assets/index-1ycN8yFX.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-C1y9_flo.css">
+    <script type="module" crossorigin src="/assets/index-BeF-CiYG.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DPP0Dsz9.css">
   </head>
   <body>
     <div id="app"></div>

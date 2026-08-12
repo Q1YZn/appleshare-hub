@@ -1,18 +1,79 @@
 :root {
+  color-scheme: light;
   --bg: #f3f5f3;
   --surface: #ffffff;
   --ink: #17211e;
   --muted: #5f6d68;
   --line: #d8dfdb;
   --accent: #0f766e;
+  --accent-strong: #0b665f;
   --accent-soft: #e5f4f1;
+  --on-accent: #ffffff;
   --danger: #b42318;
   --danger-soft: #fff0ed;
+  --danger-line: #f2b8b5;
   --warn: #9a6700;
   --warn-soft: #fff8e6;
+  --warn-line: #eccf86;
   --ok: #15803d;
   --ok-soft: #e9f7ee;
+  --ok-line: #bcdcc8;
+  --info: #0e7490;
+  --info-soft: #eef8fa;
+  --info-line: #b7d9dd;
   --radius: 8px;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f1513;
+  --surface: #18201d;
+  --ink: #e8efec;
+  --muted: #9aa8a2;
+  --line: #2c3833;
+  --accent: #57d0c3;
+  --accent-strong: #76ddd2;
+  --accent-soft: #14332f;
+  --on-accent: #06201d;
+  --danger: #ff9b91;
+  --danger-soft: #351b19;
+  --danger-line: #683b36;
+  --warn: #f0c766;
+  --warn-soft: #362b12;
+  --warn-line: #6a571f;
+  --ok: #6bd792;
+  --ok-soft: #16301f;
+  --ok-line: #2e5b3e;
+  --info: #6ccbe9;
+  --info-soft: #12303b;
+  --info-line: #2a5a68;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0f1513;
+    --surface: #18201d;
+    --ink: #e8efec;
+    --muted: #9aa8a2;
+    --line: #2c3833;
+    --accent: #57d0c3;
+    --accent-strong: #76ddd2;
+    --accent-soft: #14332f;
+    --on-accent: #06201d;
+    --danger: #ff9b91;
+    --danger-soft: #351b19;
+    --danger-line: #683b36;
+    --warn: #f0c766;
+    --warn-soft: #362b12;
+    --warn-line: #6a571f;
+    --ok: #6bd792;
+    --ok-soft: #16301f;
+    --ok-line: #2e5b3e;
+    --info: #6ccbe9;
+    --info-soft: #12303b;
+    --info-line: #2a5a68;
+  }
 }
 
 * {
@@ -83,6 +144,14 @@ h2 {
   max-width: 640px;
 }
 
+.hero-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .hero-metrics {
   display: flex;
   gap: 10px;
@@ -130,11 +199,11 @@ h2 {
 .button-primary {
   border-color: var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .button-primary:hover {
-  background: #0b665f;
+  background: var(--accent-strong);
 }
 
 .button:disabled {
@@ -145,6 +214,46 @@ h2 {
 .button svg {
   width: 17px;
   height: 17px;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.theme-option {
+  min-height: 32px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.theme-option:hover {
+  color: var(--accent);
+}
+
+.theme-option.is-active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.theme-option svg {
+  width: 15px;
+  height: 15px;
 }
 
 .spin {
@@ -192,9 +301,9 @@ h2 {
 }
 
 .alert-danger {
-  border-color: #f2b8b5;
+  border-color: var(--danger-line);
   background: var(--danger-soft);
-  color: #7f1d1d;
+  color: var(--danger);
 }
 
 .alert-danger svg {
@@ -202,9 +311,9 @@ h2 {
 }
 
 .alert-warn {
-  border-color: #eccf86;
+  border-color: var(--warn-line);
   background: var(--warn-soft);
-  color: #6b4a00;
+  color: var(--warn);
 }
 
 .alert-warn svg {
@@ -212,13 +321,13 @@ h2 {
 }
 
 .alert-info {
-  border-color: #b7d9dd;
-  background: #eef8fa;
-  color: #1b4a52;
+  border-color: var(--info-line);
+  background: var(--info-soft);
+  color: var(--info);
 }
 
 .alert-info svg {
-  color: #0e7490;
+  color: var(--info);
 }
 
 .layout {
@@ -358,13 +467,13 @@ h2 {
 }
 
 .account-card.is-available {
-  border-color: #bcdcc8;
-  background: #fbfefb;
+  border-color: var(--ok-line);
+  background: var(--ok-soft);
 }
 
 .account-card.is-unavailable {
-  border-color: #efc6c2;
-  background: #fffbfb;
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
 }
 
 .account-top {
@@ -738,6 +847,22 @@ figcaption {
   .hero-metrics {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+  }
+
+  .hero-actions {
+    justify-content: stretch;
+  }
+
+  .hero-actions .theme-toggle {
+    flex: 1 1 auto;
+  }
+
+  .hero-actions .theme-option {
+    flex: 1 1 0;
+  }
+
+  .hero-actions .button {
+    flex: 1 1 auto;
   }
 
   .metric {

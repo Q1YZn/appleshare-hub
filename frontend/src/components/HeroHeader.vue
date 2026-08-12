@@ -1,14 +1,16 @@
 <script setup>
 import { RefreshCw } from "@lucide/vue";
+import ThemeToggle from "./ThemeToggle.vue";
 
 defineProps({
   availableCount: { type: Number, default: 0 },
   totalCount: { type: Number, default: 0 },
   channelCount: { type: Number, default: 0 },
-  loading: { type: Boolean, default: false }
+  loading: { type: Boolean, default: false },
+  theme: { type: String, default: "auto" }
 });
 
-defineEmits(["refresh"]);
+defineEmits(["refresh", "changeTheme"]);
 </script>
 
 <template>
@@ -32,9 +34,12 @@ defineEmits(["refresh"]);
         <span>渠道</span>
       </div>
     </div>
-    <button class="button button-primary" type="button" :disabled="loading" @click="$emit('refresh')">
-      <RefreshCw :size="17" :class="{ spin: loading }" />
-      <span>{{ loading ? "刷新中" : "刷新" }}</span>
-    </button>
+    <div class="hero-actions">
+      <ThemeToggle :theme="theme" @change="$emit('changeTheme', $event)" />
+      <button class="button button-primary" type="button" :disabled="loading" @click="$emit('refresh')">
+        <RefreshCw :size="17" :class="{ spin: loading }" />
+        <span>{{ loading ? "刷新中" : "刷新" }}</span>
+      </button>
+    </div>
   </header>
 </template>
