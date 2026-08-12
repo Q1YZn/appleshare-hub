@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "pages:dev": "wrangler pages dev web --r2 BUCKET=appleshare-hub",
-    "pages:deploy": "wrangler pages deploy web",
+    "pages:deploy": "wrangler pages deploy web --branch main",
     "worker:dev": "wrangler dev --config wrangler.worker.toml --test-scheduled",
     "worker:deploy": "wrangler deploy --config wrangler.worker.toml",
     "check:providers": "node scripts/check-providers.mjs"

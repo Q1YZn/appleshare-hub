@@ -188,6 +188,12 @@ npx wrangler r2 bucket create appleshare-hub
 npm run pages:deploy
 ```
 
+`pages:deploy` 显式使用 `--branch main`，确保直接部署到 Production 域名（`<project>.pages.dev` 和自定义域名）。如果你只想发布 Preview，可手动执行：
+
+```bash
+npx wrangler pages deploy web --branch cloudflare-r2
+```
+
 方式二：在 Cloudflare Dashboard 创建 Pages 项目，连接本仓库并选择 `cloudflare-r2` 分支，构建输出目录填 `web`。
 
 ### 9.3 配置 Pages 的 R2 Binding
