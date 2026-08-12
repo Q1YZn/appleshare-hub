@@ -1,16 +1,18 @@
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import AccountPanel from "./components/AccountPanel.vue";
 import AlertStrip from "./components/AlertStrip.vue";
 import AppFooter from "./components/AppFooter.vue";
 import ChannelPanel from "./components/ChannelPanel.vue";
 import GuidePanel from "./components/GuidePanel.vue";
 import HeroHeader from "./components/HeroHeader.vue";
+import { useAnalytics } from "./composables/useAnalytics.js";
 import { useSnapshot } from "./composables/useSnapshot.js";
 import { channelLetter, formatTime } from "./utils/format.js";
 
 const PAGE_SIZE = 7;
 const { snapshot, loading, error, load } = useSnapshot();
+const { trackVisit } = useAnalytics();
 
 const onlyAvailable = ref(false);
 const selectedCountry = ref("");
@@ -132,6 +134,10 @@ async function refresh() {
   } catch (err) {
     // error state is already rendered by the composable
   }
+}
+
+if (import.meta.env.PROD) {
+  onMounted(trackVisit);
 }
 </script>
 
