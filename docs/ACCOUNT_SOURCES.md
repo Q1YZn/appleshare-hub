@@ -161,7 +161,9 @@
 
 也可用环境变量 `IDFREE_CAPTCHA_SOLVER`、`IDFREE_CAPTCHA_API_KEY` 和 `IDFREE_PROXY_URL` 覆盖，避免把付费 key 写进仓库或配置快照。
 
-2026-08-12 实测：上游对 Cloudflare 数据中心出口返回 `Blocked: blacklisted IP`，所以 Cloudflare Worker 抓取时必须在 `proxy_url` 配置一个未被拉黑的 HTTP/HTTPS 代理，否则会在第一步 GET 首页就拿到 403。
+2026-08-12 实测：idfree 不是“仅国内可访问”，而是按出口 IP 黑名单放行；本机普通出口（LAX）与日本住宅/ISP 出口（NRT）均返回 200 且带 `x-token`/`data-sitekey`，Cloudflare 数据中心出口返回 `Blocked: blacklisted IP`。所以 Cloudflare Worker 抓取时必须在 `proxy_url` 配置一个未被拉黑的代理出口，否则会在第一步 GET 首页就拿到 403。
+
+注意 `IDFREE_PROXY_URL` 不是 `http://user:pass@host:port` 这种标准 HTTP 代理格式。Worker 的 `fetch()` 不支持标准代理环境变量，代码会把请求拼成 `<proxy_url>/fetch?url=<URL编码后的目标地址>`（见 `functions/_lib/providers.js` 的 `fetchIdFree` 与 `internal/provider/idfree.go` 的 `requestURL`）。也就是说需要提供一个 fetch 代理服务：接收 `GET /fetch?url=...`，代为请求目标并原样返回响应头与正文。可自建一个仅做转发的小型服务/Worker，只要出口 IP 不被 idfree 拉黑即可。
 
 ### 2.4 appleid.uczyw.us
 
