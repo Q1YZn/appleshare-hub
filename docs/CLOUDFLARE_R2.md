@@ -37,6 +37,7 @@ flowchart LR
 1. 用户访问走 Pages 和 Pages Functions，只读 R2，不直接请求上游。
 2. 抓取上游只在定时 Worker 中发生，避免用户访问高峰重复打上游。
 3. R2 是唯一数据层，Worker 和 Functions 通过同一个 `BUCKET` binding 访问。
+4. `/api/accounts` 使用 Cloudflare Cache API 写边缘缓存，默认 TTL 5 分钟；缓存命中时不会执行 Functions，也不会读 R2。
 
 ## 3. 目录结构
 
@@ -88,7 +89,16 @@ flowchart LR
 
 ### `GET /api/accounts`
 
-从 R2 读取 `snapshot/latest.json` 并原样返回，响应结构与 Go 版完全一致，包含 `accounts`、`channels`、`warnings`、`status_legend` 和计数。响应头带 `Cache-Control: no-store`。
+从 R2 读取 `snapshot/latest.json` 并原样返回，响应结构与 Go 版完全一致，包含 `accounts`、`channels`、`warnings`、`status_legend` 和计数。
+
+响应头为 `Cache-Control: public, max-age=300, s-maxage=300`，并把响应写入 `caches.default`。5 分钟缓存窗口内，同一边缘节点的请求直接命中缓存，不执行 Functions。
+
+### 5.1 缓存与轮询策略
+
+- `cache_ttl_seconds` 默认 `300`，快照生成时写入 JSON，前端和接口都按这个值刷新。
+- 前端默认每 5 分钟轮询一次；页面切到后台时暂停，回到前台后再拉取。
+- 手动“刷新”按钮只重新请求 `/api/accounts`（带 `no-store` 绕过浏览器缓存），不会触发上游抓取，也不会修改 R2。
+- 上游抓取只由 Cron Worker 每 5 分钟执行一次，用户请求始终读快照。
 
 ### `GET /api/status`
 
@@ -122,11 +132,13 @@ Worker 的 `fetch` 入口也实现了相同刷新逻辑，可以用于手动触�
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
 | `PROVIDER_CONFIG` | 内置默认配置 | 渠道 JSON，格式见 `cloudflare.config.example.json`；在 Cloudflare 控制台配置时需是单行 JSON |
-| `CACHE_TTL_SECONDS` | `30` | 前端轮询间隔与快照缓存标记 |
+| `CACHE_TTL_SECONDS` | `300` | 前端轮询间隔、快照缓存标记与边缘缓存 TTL；若旧 `PROVIDER_CONFIG` 里仍写 30，请覆盖为 300 |
 | `SNAPSHOT_KEY` | `snapshot/latest.json` | 最新快照对象 Key |
 | `HISTORY_PREFIX` | `snapshots/` | 历史快照前缀 |
 | `RETAIN_HISTORY` | `0` | 保留历史快照份数，`0` 表示每次刷新后删除全部历史 |
 | `REFRESH_TOKEN` | 空 | 手动刷新接口/Worker fetch 的 Bearer token |
+
+> 10 万用户量级的费用测算与后续优化思路见 [费用与调用优化](COST_OPTIMIZATION.md)。
 
 ## 8. 本地开发
 

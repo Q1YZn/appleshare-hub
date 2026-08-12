@@ -307,21 +307,28 @@
 
   function scheduleRefresh(ttlSeconds) {
     clearTimeout(refreshTimer);
-    var delay = Math.max(5000, (Number(ttlSeconds) || 30) * 1000 + 800);
-    refreshTimer = setTimeout(load, delay);
+    if (document.visibilityState === "hidden") {
+      refreshTimer = null;
+      return;
+    }
+    var delay = Math.max(5000, (Number(ttlSeconds) || 300) * 1000 + 800);
+    refreshTimer = setTimeout(function () {
+      load(false);
+    }, delay);
   }
 
   function setLoading(loading) {
     refreshBtn.disabled = loading;
   }
 
-  async function load() {
+  async function load(force) {
     setLoading(true);
     try {
-      var response = await fetch("/api/accounts", {
-        headers: { Accept: "application/json" },
-        cache: "no-store"
-      });
+      var options = { headers: { Accept: "application/json" } };
+      if (force) {
+        options.cache = "no-store";
+      }
+      var response = await fetch("/api/accounts", options);
       if (!response.ok) {
         throw new Error("HTTP " + response.status);
       }
@@ -336,13 +343,23 @@
       generatedAt.textContent = "获取失败：" + err.message;
       accountList.innerHTML = '<div class="empty-state"><i data-lucide="cloud-off"></i><p>无法连接服务，请稍后重试</p></div>';
       iconify();
-      scheduleRefresh(30);
+      scheduleRefresh(300);
     } finally {
       setLoading(false);
     }
   }
 
-  refreshBtn.addEventListener("click", load);
+  refreshBtn.addEventListener("click", function () {
+    load(true);
+  });
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && !refreshTimer && !refreshBtn.disabled) {
+      load(false);
+    } else if (document.visibilityState === "hidden") {
+      clearTimeout(refreshTimer);
+      refreshTimer = null;
+    }
+  });
   onlyAvailable.addEventListener("change", function () {
     currentPage = 1;
     renderAccounts();

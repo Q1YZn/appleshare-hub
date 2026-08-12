@@ -1,6 +1,6 @@
 const DEFAULT_CONFIG = {
   server: {
-    cache_ttl_seconds: 30,
+    cache_ttl_seconds: 300,
     request_timeout_seconds: 15
   },
   providers: [

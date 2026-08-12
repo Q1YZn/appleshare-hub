@@ -46,7 +46,7 @@ go run .
 {
   "server": {
     "port": 8080,
-    "cache_ttl_seconds": 30,
+    "cache_ttl_seconds": 300,
     "request_timeout_seconds": 15
   },
   "providers": [
@@ -111,7 +111,7 @@ go run .
   "code": 200,
   "message": "ok",
   "generated_at": "2026-08-07T01:00:00+08:00",
-  "cache_ttl_seconds": 30,
+  "cache_ttl_seconds": 300,
   "accounts": [
     {
       "id": "sha_cx_01:trevorthompson2227@outlook.com",
@@ -183,6 +183,8 @@ go run .
 - [架构设计](docs/ARCHITECTURE.md)
 - [账号渠道接入](docs/ACCOUNT_SOURCES.md)
 - [渠道来源调研](docs/ACCOUNT_SOURCES_RESEARCH.md)
+- [Cloudflare Pages + R2 部署](docs/CLOUDFLARE_R2.md)
+- [费用与调用优化](docs/COST_OPTIMIZATION.md)
 - [iOS 26 登录/退出教程](docs/IOS26_LOGOUT_GUIDE.md)
 
 ## 免责声明

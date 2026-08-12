@@ -27,7 +27,7 @@ flowchart LR
     P4 --> S4[idfree.top 三步会话]
     P5 --> S5[appleid.uczyw.us]
     P6 --> S6[free.iosapp.icu 1-3.txt]
-    Service --> Cache[(30s 内存缓存)]
+    Service --> Cache[(300s 内存缓存)]
 ```
 
 ## 3. 模块说明
@@ -83,7 +83,7 @@ type Factory func(cfg Config) (Provider, error)
 - 汇总账号、渠道状态和错误信息。
 - 排序账号：可用账号排在前面。
 - 渠道按配置顺序返回，渠道 A 固定在最前，前端只显示字母编号。
-- 使用 30 秒内存缓存，避免用户访问高峰重复请求上游。
+- 使用 300 秒内存缓存，避免用户访问高峰重复请求上游。
 - 防止缓存过期时多个请求同时打上游（单飞行缓存刷新）。
 
 如果某个渠道请求失败，服务仍会返回其他渠道的数据，并把该渠道标记为 `error`，同时在 `message` 中返回 `partial`。
@@ -115,10 +115,11 @@ Gin 路由层：
 
 ## 5. 缓存策略
 
-- 默认缓存 30 秒，可通过 `config.json` 的 `cache_ttl_seconds` 调整。
+- 默认缓存 300 秒，可通过 `config.json` 的 `cache_ttl_seconds` 调整。
 - 缓存内容为完整 `Snapshot`，包括账号和渠道状态。
 - 缓存刷新使用单飞行模式：同一个时间窗口内只有一个刷新任务，其他请求等待该任务结果。
 - 前端在收到响应后按 `cache_ttl_seconds` 自动安排下一次刷新。
+- Cloudflare Pages + R2 分支还会把 `/api/accounts` 响应写入边缘缓存，并返回 `Cache-Control: public, max-age=300, s-maxage=300`；同一边缘节点在 5 分钟窗口内直接命中缓存，不执行 Functions。
 
 ## 6. API 约定
 
