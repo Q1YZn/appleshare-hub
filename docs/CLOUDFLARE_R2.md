@@ -4,7 +4,7 @@
 
 本分支把原来的 Go + Gin 版本改造成可以在 Cloudflare 免费额度内运行的形式：
 
-- 页面使用 **Cloudflare Pages** 托管，前端代码仍在 `web/`，无需改动。
+- 页面使用 **Cloudflare Pages** 托管，前端源码在 `frontend/`，`npm run build` 输出到 `web/` 后部署。
 - 数据使用 **Cloudflare R2** 存储，每次抓取后的完整账号快照写入 R2。
 - 定时抓取由独立的 **Cloudflare Worker cron** 执行，不依赖 Pages 原生定时任务。
 - 每次成功写入新快照后，会按策略清理 R2 中的旧快照对象。
@@ -43,7 +43,16 @@ flowchart LR
 
 ```text
 .
-├── web/                            # Pages 静态站点，直接复用原前端
+├── frontend/                       # Vite + Vue 3 前端源码
+│   ├── index.html
+│   ├── vite.config.js
+│   ├── public/assets/guide/        # 教程图片
+│   └── src/
+│       ├── App.vue
+│       ├── components/             # 账号卡片、筛选、分页、教程等组件
+│       ├── composables/            # 快照获取与自动刷新逻辑
+│       └── utils/                  # 格式化工具
+├── web/                            # Vite 构建产物，Pages 直接发布
 ├── functions/
 │   ├── api/
 │   │   ├── accounts.js             # GET /api/accounts，从 R2 读快照
@@ -151,6 +160,18 @@ Worker 的 `fetch` 入口也实现了相同刷新逻辑，可以用于手动触�
 npm install
 ```
 
+启动 Vite 本地开发服务器：
+
+```bash
+npm run dev
+```
+
+构建生产产物到 `web/`：
+
+```bash
+npm run build
+```
+
 验证渠道抓取（不需要 R2）：
 
 ```bash
@@ -197,7 +218,7 @@ npx wrangler r2 bucket create appleshare-hub
 npm run pages:deploy
 ```
 
-`pages:deploy` 显式使用 `--branch main`，确保直接部署到 Production 域名（`<project>.pages.dev` 和自定义域名）。如果你只想发布 Preview，可手动执行：
+`pages:deploy` 会先执行 `npm run build`，再显式使用 `--branch main` 部署到 Production 域名（`<project>.pages.dev` 和自定义域名）。如果你只想发布 Preview，可手动执行：
 
 ```bash
 npx wrangler pages deploy web --branch cloudflare-r2
@@ -234,7 +255,7 @@ npm run worker:deploy
 
 - `main` 分支仍是 Go + Gin 版本，逻辑、配置、前端保持不变。
 - `cloudflare-r2` 分支新增 Cloudflare 相关文件，不改动 Go 版本。
-- 两版前端共用 `web/`，API 响应结构一致，后续新增渠道时 Go 版和 JS 版需要各自实现对应 Provider。
+- 两版共用同一份 Vite + Vue 3 前端源码 `frontend/` 与构建产物 `web/`，API 响应结构一致，后续新增渠道时 Go 版和 JS 版需要各自实现对应 Provider。
 
 ## 11. 安全与合规
 

@@ -100,11 +100,21 @@ Gin 路由层：
 | `GET /api/status` | 与 `/api/accounts` 相同，便于不同端接入 |
 | `GET /healthz` | 健康检查 |
 
-前端通过 `web/` 目录使用 `//go:embed` 编译进二进制，部署时不需要单独拷贝静态文件。
+前端源码位于 `frontend/`，使用 Vite + Vue 3 编写；`npm run build` 会把产物输出到 `web/`，再通过 `//go:embed web` 编译进二进制，部署时不需要单独拷贝静态文件。
+
+### 3.5 前端结构
+
+- `frontend/src/App.vue`：页面整体布局与筛选、分页状态管理。
+- `frontend/src/components/`：账号卡片、筛选控件、分页、渠道状态、教程等独立组件。
+- `frontend/src/composables/useSnapshot.js`：负责请求 `/api/accounts`、自动轮询、页面可见性暂停/恢复。
+- `frontend/src/utils/format.js`：渠道字母编号、时间格式等展示工具。
+- 构建命令：`npm run dev` 本地开发，`npm run build` 生成 `web/`。
+
+前端只消费统一快照结构，不依赖具体渠道。新增渠道或调整上游解析时，不需要修改 Vue 组件。
 
 ## 4. 数据流
 
-1. 用户打开网页。
+1. 用户打开网页，Vue 应用挂载。
 2. 前端请求 `GET /api/accounts`。
 3. Gin handler 调用 `Service.Snapshot(ctx)`。
 4. Service 检查缓存：有效则直接返回，失效则启动一次刷新。

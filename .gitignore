@@ -8,5 +8,6 @@ node_modules/
 .wrangler/
 .dev.vars
 dist/
+frontend/web/
 gcm-diagnose.log
 logs/

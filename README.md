@@ -4,7 +4,7 @@ AppleShare Hub 是一个使用 Go + Gin 构建的苹果账号分发状态服务�
 
 ## 项目特点
 
-- Go + Gin 轻量服务，前端为内嵌静态页面，单二进制即可运行。
+- Go + Gin 轻量服务，前端使用 Vite + Vue 3 构建，单二进制即可运行。
 - 通过 `Provider` 接口抽象账号渠道，后续接入新的渠道时无需改动页面和 API。
 - 短时间缓存上游结果，避免每个用户访问都打上游接口。
 - 网页实时展示账号状态、可用数量、渠道健康度、状态说明。
@@ -25,11 +25,13 @@ AppleShare Hub 是一个使用 Go + Gin 构建的苹果账号分发状态服务�
 
 ## 快速开始
 
-环境要求：Go 1.24 或更高版本。
+环境要求：Node.js 18+、npm、Go 1.24 或更高版本。
 
 ```bash
 git clone https://github.com/Q1YZn/appleshare-hub.git
 cd appleshare-hub
+npm install
+npm run build
 go mod tidy
 go run .
 ```
@@ -172,12 +174,21 @@ go run .
 │   ├── provider/                 # 渠道抽象与 sha.cx / fanqiangnan / idfree / appleid_api / iosapp_text 实现
 │   ├── service/                  # 缓存、聚合、状态计算
 │   └── httpapi/                  # Gin 路由与 API
-├── web/                          # 内嵌前端页面
+├── frontend/                     # Vite + Vue 3 前端源码
+│   ├── index.html
+│   ├── vite.config.js
+│   ├── public/assets/guide/      # Apple 官方与 idfree 教程图片
+│   └── src/
+│       ├── App.vue
+│       ├── components/           # 账号卡片、筛选、分页、教程等组件
+│       ├── composables/          # 快照获取与自动刷新逻辑
+│       └── utils/                # 渠道字母、时间等格式化工具
+├── web/                          # Vite 构建产物，由 //go:embed 内嵌
 │   ├── index.html
 │   └── assets/
-│       ├── app.js
-│       ├── styles.css
-│       └── guide/                # Apple 官方与 idfree 教程图片
+│       ├── index-*.js
+│       ├── index-*.css
+│       └── guide/                # 教程图片
 └── docs/
     ├── ARCHITECTURE.md           # 架构设计
     ├── ACCOUNT_SOURCES.md        # 账号渠道接入

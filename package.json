@@ -4,14 +4,22 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "dev": "vite frontend",
+    "build": "vite build frontend --outDir ../web --emptyOutDir",
     "pages:dev": "wrangler pages dev web --r2 BUCKET=appleshare-hub",
-    "pages:deploy": "wrangler pages deploy web --branch main",
+    "pages:deploy": "npm run build && wrangler pages deploy web --branch main",
     "worker:dev": "wrangler dev --config wrangler.worker.toml --test-scheduled",
     "worker:deploy": "wrangler deploy --config wrangler.worker.toml",
     "check:providers": "node scripts/check-providers.mjs",
     "check:idfree-mock": "node scripts/mock-idfree-provider.mjs"
   },
   "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.8",
+    "vite": "^8.2.1",
     "wrangler": "^4.30.0"
+  },
+  "dependencies": {
+    "@lucide/vue": "^1.31.0",
+    "vue": "^3.5.41"
   }
 }
