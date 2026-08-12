@@ -9,7 +9,7 @@ import HeroHeader from "./components/HeroHeader.vue";
 import { useSnapshot } from "./composables/useSnapshot.js";
 import { channelLetter, formatTime } from "./utils/format.js";
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 7;
 const { snapshot, loading, error, load } = useSnapshot();
 
 const onlyAvailable = ref(false);
