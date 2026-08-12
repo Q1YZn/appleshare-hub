@@ -37,7 +37,7 @@ site:github.com apple id 共享 账号
 | 来源 | 入口 / 接口 | 鉴权 | 数据格式 | 实测结果 | 抓取难度 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- |
 | 翻墙男 | `https://fanqiangnan.com/appleid.html`<br>`https://fanqiangnan.com/data_sync.php` | 无 | JSON | 200，约 41 个账号 | 低 | 已接入 |
-| 小优 ID | `https://idfree.top/`<br>`https://idfree.top/api/accounts.php` | Cookie + X-Token + 浏览器头 | JSON 数组 | 200，可获取 | 中 | 已接入 |
+| 小优 ID | `https://idfree.top/`<br>`https://idfree.top/api/accounts.php` | Turnstile + Cookie + 会话 token | JSON 数组 | 需 Turnstile 求解 | 中 | 已接入（需验证服务 key） |
 | CCKDN 云码酷 | `https://appleid.uczyw.us/api/accounts`<br>`https://appleid2.uczyw.us/api/accounts` | 无 | JSON | 200，count=42 | 低 | 已接入（备用源默认关闭） |
 | free.iosapp.icu | `https://free.iosapp.icu/go-rod/1.txt`<br>`.../2.txt`<br>`.../3.txt` | 无 | 纯文本 | 200，每文件 1 个账号 | 低 | 已接入（低优先级） |
 | Applo / mp.499599.xyz | 需账号登录、订单购买 | 高 | JSON | 无公开账号 | 高 | 暂不接入 |
@@ -95,15 +95,28 @@ curl.exe -s -L --max-time 15 https://fanqiangnan.com/data_sync.php
 
 ### 4.2 小优 ID `idfree.top`
 
-完整流程：
+完整流程（2026-08-12 起新增 Cloudflare Turnstile）：
 
 ```text
-1. GET  https://idfree.top/                    获取 Cookie 和 <meta name="x-token">
-2. POST https://idfree.top/api/session_verify.php
-3. GET  https://idfree.top/api/accounts.php    携带 Cookie、X-Token、浏览器头
+1. GET  https://idfree.top/                          获取 Cookie、<meta name="x-token">、data-sitekey
+2. POST https://idfree.top/api/verify-turnstile.php  携带 `{"token":"<验证服务解出的 token>"}`
+3. POST https://idfree.top/api/session_verify.php    换取会话 token
+4. GET  https://idfree.top/api/accounts.php          携带 Cookie、会话 token、浏览器头
 ```
 
-验证命令（PowerShell）：
+不经过 Turnstile 时，`session_verify.php` 返回 403：
+
+```json
+{"ok":false,"error":"请先完成人机验证","code":"TURNSTILE_REQUIRED"}
+```
+
+`accounts.php` 直接请求返回 403：
+
+```json
+{"error":"未通过安全验证，或验证已过期","code":"VERIFICATION_REQUIRED"}
+```
+
+旧验证命令（PowerShell，已无法直接跑通，仅保留协议参考）：
 
 ```powershell
 $jar = Join-Path $env:TEMP "idfree_cookies.txt"
@@ -157,7 +170,8 @@ curl.exe -s -b $jar -A $ua `
 要点：
 
 - 缺少 `Accept` / `Sec-Fetch-*` / `X-Requested-With` 等浏览器头会返回 `INVALID_BROWSER`。
-- 需要维护 Cookie 和 X-Token 会话，建议接入时复用同一个 HTTP Client。
+- 需要维护 Cookie 和会话 token，建议接入时复用同一个 HTTP Client。
+- Turnstile 求解需要配置 `captcha_solver`（`capsolver` / `2captcha`）和 `captcha_api_key`，或用环境变量 `IDFREE_CAPTCHA_SOLVER` / `IDFREE_CAPTCHA_API_KEY` 注入。
 - 当前账号量较小，但字段规范、状态明确。
 
 ### 4.3 CCKDN 云码酷 `appleid.uczyw.us`
@@ -249,7 +263,7 @@ curl.exe -s -L --max-time 15 https://free.iosapp.icu/go-rod/1.txt
 
 1. `fanqiangnan.com/data_sync.php`：无鉴权、数据量大、成本最低，已接入。
 2. `appleid.uczyw.us/api/accounts`：公开 JSON，两个域名可做冗余，已接入。
-3. `idfree.top/api/accounts.php`：已有浏览器风控，但流程已跑通，已接入。
+3. `idfree.top/api/accounts.php`：已有浏览器风控，2026-08-12 起新增 Turnstile，需要配置 Capsolver / 2captcha 验证服务后恢复。
 4. `free.iosapp.icu/go-rod/*.txt`：解析简单，数据量小，已作为低优先级补充源接入。
 5. Applo、GitHub Markdown、论坛聚合页：暂不接入，原因见候选来源一览。
 

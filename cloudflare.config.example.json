@@ -28,7 +28,12 @@
       "type": "idfree",
       "name": "小优 ID（idfree）",
       "url": "https://idfree.top/",
-      "enabled": true
+      "enabled": true,
+      "options": {
+        "captcha_solver": "capsolver",
+        "captcha_api_key": "",
+        "captcha_timeout_seconds": 30
+      }
     },
     {
       "id": "appleid_api_01",

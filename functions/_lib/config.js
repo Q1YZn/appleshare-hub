@@ -28,7 +28,12 @@ const DEFAULT_CONFIG = {
       type: "idfree",
       name: "小优 ID（idfree）",
       url: "https://idfree.top/",
-      enabled: true
+      enabled: true,
+      options: {
+        captcha_solver: "capsolver",
+        captcha_api_key: "",
+        captcha_timeout_seconds: 30
+      }
     },
     {
       id: "appleid_api_01",
@@ -91,6 +96,15 @@ export function loadConfig(env = {}) {
   config.providers = Array.isArray(config.providers)
     ? config.providers.filter((provider) => provider.enabled !== false)
     : [];
+  for (const provider of config.providers) {
+    provider.options = provider.options || {};
+    if (env.IDFREE_CAPTCHA_SOLVER) {
+      provider.options.captcha_solver = env.IDFREE_CAPTCHA_SOLVER;
+    }
+    if (env.IDFREE_CAPTCHA_API_KEY) {
+      provider.options.captcha_api_key = env.IDFREE_CAPTCHA_API_KEY;
+    }
+  }
   return config;
 }
 

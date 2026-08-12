@@ -1,7 +1,9 @@
 package provider
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,8 +19,43 @@ func optionTimeout(cfg Config, fallback time.Duration) time.Duration {
 	return fallback
 }
 
+func optionString(cfg Config, name string) string {
+	if cfg.Options == nil {
+		return ""
+	}
+	value, ok := cfg.Options[name]
+	if !ok || value == nil {
+		return ""
+	}
+	if text, ok := value.(string); ok {
+		return text
+	}
+	return fmt.Sprint(value)
+}
+
 func newHTTPClient(timeout time.Duration) *http.Client {
 	return &http.Client{Timeout: timeout}
+}
+
+func postJSON(ctx context.Context, client *http.Client, url string, payload any, out any) error {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("encode json payload: %w", err)
+	}
+	headers := http.Header{}
+	headers.Set("Content-Type", "application/json")
+	headers.Set("User-Agent", defaultBrowserUserAgent)
+	body, err := fetchBody(ctx, client, http.MethodPost, url, headers, bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	if out == nil {
+		return nil
+	}
+	if err := json.Unmarshal(body, out); err != nil {
+		return fmt.Errorf("parse json response: %w", err)
+	}
+	return nil
 }
 
 func fetchBody(ctx context.Context, client *http.Client, method, url string, headers http.Header, body io.Reader) ([]byte, error) {

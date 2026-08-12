@@ -104,13 +104,16 @@
 
 ### 2.3 idfree.top
 
-需要三步会话流程：
+上游在 2026-08-12 新增了 Cloudflare Turnstile 人机验证，当前抓取流程如下：
 
 ```text
-1. GET  https://idfree.top/                    获取 Cookie 和 <meta name="x-token">
-2. POST https://idfree.top/api/session_verify.php
-3. GET  https://idfree.top/api/accounts.php    携带 Cookie、X-Token、浏览器头
+1. GET  https://idfree.top/                          获取 Cookie、<meta name="x-token">、data-sitekey
+2. POST https://idfree.top/api/verify-turnstile.php  携带 `{"token":"<验证服务解出的 token>"}`
+3. POST https://idfree.top/api/session_verify.php    换取会话 token
+4. GET  https://idfree.top/api/accounts.php          携带 Cookie、会话 token、浏览器头
 ```
+
+`session_verify.php` 未完成 Turnstile 时会返回 `403`，内容为 `{"ok":false,"error":"请先完成人机验证","code":"TURNSTILE_REQUIRED"}`；`accounts.php` 未通过验证时返回 `{"error":"未通过安全验证，或验证已过期","code":"VERIFICATION_REQUIRED"}`。因此必须先通过验证服务（Capsolver / 2captcha）解出 Turnstile token，再执行会话流程。
 
 返回顶层 JSON 数组：
 
@@ -132,9 +135,30 @@
 接入要点：
 
 - 使用同一个 `http.Client` 和 Cookie Jar，保证会话 cookie 连续。
+- 首页 HTML 存在 `data-sitekey` 时，先用验证服务解 Turnstile token，再 POST `/api/verify-turnstile.php`。
+- `session_verify.php` 返回的 `token` 会作为后续 `/api/accounts.php` 的 `X-Token`；没有返回时沿用首页 `x-token`。
 - 缺 `Accept`、`Sec-Fetch-*`、`X-Requested-With` 等浏览器头会返回 `INVALID_BROWSER`。
 - `status: true` 映射为 `available`，`last_check` 作为更新时间。
 - 完整请求头在 `internal/provider/idfree.go` 的 `baseHeaders` 中维护。
+
+渠道配置示例（`options` 中的 API key 留空时，程序会给出配置类错误而不是误报网络错误）：
+
+```json
+{
+  "id": "idfree_01",
+  "type": "idfree",
+  "name": "小优 ID（idfree）",
+  "url": "https://idfree.top/",
+  "enabled": true,
+  "options": {
+    "captcha_solver": "capsolver",
+    "captcha_api_key": "",
+    "captcha_timeout_seconds": 30
+  }
+}
+```
+
+也可用环境变量 `IDFREE_CAPTCHA_SOLVER` 和 `IDFREE_CAPTCHA_API_KEY` 覆盖，避免把付费 key 写进仓库或配置快照。
 
 ### 2.4 appleid.uczyw.us
 

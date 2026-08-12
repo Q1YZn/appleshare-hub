@@ -63,7 +63,7 @@ type Factory func(cfg Config) (Provider, error)
 | --- | --- | --- |
 | `sha_cx` | `shacx.go` | HTML 内嵌 JSON |
 | `fanqiangnan` | `fanqiangnan.go` | 无鉴权 JSON |
-| `idfree` | `idfree.go` | Cookie + X-Token + 浏览器头三步会话 |
+| `idfree` | `idfree.go` | Turnstile 验证 + Cookie + 会话 token 多步会话 |
 | `appleid_api` | `appleid_api.go` | 无鉴权 JSON |
 | `iosapp_text` | `iosapp_text.go` | 1-3 个纯文本文件，无检查时间，低优先级 |
 

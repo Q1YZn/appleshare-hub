@@ -53,6 +53,11 @@ func Default() Config {
 				Name:    "小优 ID（idfree）",
 				URL:     "https://idfree.top/",
 				Enabled: true,
+				Options: map[string]any{
+					"captcha_solver":          "capsolver",
+					"captcha_api_key":         "",
+					"captcha_timeout_seconds": 30,
+				},
 			},
 			{
 				ID:      "appleid_api_01",

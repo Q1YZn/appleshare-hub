@@ -283,6 +283,121 @@ function idfreeBaseHeaders(baseURL) {
   };
 }
 
+function idfreeSolverConfig(cfg) {
+  const options = cfg.options || {};
+  return {
+    solver: String(options.captcha_solver || "").trim().toLowerCase(),
+    apiKey: String(options.captcha_api_key || "").trim()
+  };
+}
+
+async function solveIdFreeTurnstile(cfg, websiteURL, websiteKey) {
+  const { solver, apiKey } = idfreeSolverConfig(cfg);
+  if (!solver || !apiKey) {
+    throw new Error(
+      "idfree 上游已开启 Cloudflare Turnstile，需要在 options 配置 captcha_solver 和 captcha_api_key（或环境变量 IDFREE_CAPTCHA_API_KEY）后恢复"
+    );
+  }
+  const timeoutSeconds = Number(cfg.options && cfg.options.captcha_timeout_seconds) > 0
+    ? Number(cfg.options.captcha_timeout_seconds)
+    : 30;
+  const requestTimeoutMs = timeoutMs(cfg, 15);
+
+  if (solver === "capsolver") {
+    const apiBase = String((cfg.options && cfg.options.captcha_api_url) || "")
+      .trim()
+      .replace(/\/+$/, "") || "https://api.capsolver.com";
+    return solveCapsolverTurnstile(apiKey, apiBase, websiteURL, websiteKey, timeoutSeconds, requestTimeoutMs);
+  }
+  if (solver === "2captcha") {
+    const apiBase = String((cfg.options && cfg.options.captcha_api_url) || "")
+      .trim()
+      .replace(/\/+$/, "") || "https://2captcha.com";
+    return solve2CaptchaTurnstile(apiKey, apiBase, websiteURL, websiteKey, timeoutSeconds, requestTimeoutMs);
+  }
+  throw new Error(`idfree unsupported captcha_solver "${solver}" (supported: capsolver, 2captcha)`);
+}
+
+async function solveCapsolverTurnstile(apiKey, apiBase, websiteURL, websiteKey, timeoutSeconds, requestTimeoutMs) {
+  const createTask = {
+    clientKey: apiKey,
+    task: {
+      type: "AntiTurnstileTaskProxyLess",
+      websiteURL,
+      websiteKey
+    }
+  };
+  const created = await requestJSON(`${apiBase}/createTask`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(createTask),
+    timeoutMs: requestTimeoutMs
+  });
+  if (!created || !created.taskId) {
+    throw new Error(`capsolver createTask failed: ${created && created.errorDescription || "missing taskId"}`);
+  }
+
+  const deadline = Date.now() + timeoutSeconds * 1000;
+  while (Date.now() < deadline) {
+    const result = await requestJSON(`${apiBase}/getTaskResult`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientKey: apiKey, taskId: created.taskId }),
+      timeoutMs: requestTimeoutMs
+    });
+    if (result && result.status === "ready" && result.solution && result.solution.token) {
+      return result.solution.token;
+    }
+    if (result && result.status === "failed") {
+      throw new Error(`capsolver task failed: ${result.errorDescription || "unknown error"}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+  throw new Error("capsolver turnstile solve timed out");
+}
+
+async function solve2CaptchaTurnstile(apiKey, apiBase, websiteURL, websiteKey, timeoutSeconds, requestTimeoutMs) {
+  const createParams = new URLSearchParams({
+    key: apiKey,
+    method: "turnstile",
+    sitekey: websiteKey,
+    pageurl: websiteURL,
+    json: "1"
+  });
+  const created = await requestJSON(`${apiBase}/in.php`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: createParams.toString(),
+    timeoutMs: requestTimeoutMs
+  });
+  if (!created || created.status !== 1 || !created.request) {
+    throw new Error(`2captcha in.php failed: ${created && (created.request || "unknown error")}`);
+  }
+
+  const deadline = Date.now() + timeoutSeconds * 1000;
+  while (Date.now() < deadline) {
+    const pollUrl = new URL(`${apiBase}/res.php`);
+    pollUrl.searchParams.set("key", apiKey);
+    pollUrl.searchParams.set("action", "get");
+    pollUrl.searchParams.set("id", created.request);
+    pollUrl.searchParams.set("json", "1");
+    const result = await requestJSON(pollUrl.toString(), {
+      timeoutMs: requestTimeoutMs
+    });
+    if (result && result.status === 1 && result.request) {
+      return result.request;
+    }
+    if (result && result.status === 0 && typeof result.request === "string") {
+      const code = result.request.toUpperCase();
+      if (!["CAPCHA_NOT_READY", "CAPTCHA_NOT_READY"].includes(code)) {
+        throw new Error(`2captcha task failed: ${result.request}`);
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+  throw new Error("2captcha turnstile solve timed out");
+}
+
 async function fetchIdFree(cfg) {
   const baseURL = String(cfg.url || "").trim().replace(/\/+$/, "");
   if (!baseURL) {
@@ -307,7 +422,6 @@ async function fetchIdFree(cfg) {
     return bytes;
   }
 
-  await idfreeRequest("/");
   const page = decodeBytes(await idfreeRequest("/"));
   const tokenMatch = page.match(/<meta name="x-token" content="([^"]+)"/i);
   if (!tokenMatch) {
@@ -318,7 +432,20 @@ async function fetchIdFree(cfg) {
     throw new Error("idfree x-token is empty");
   }
 
-  await idfreeRequest(
+  const siteKeyMatch = page.match(/data-sitekey="([^"]+)"/i);
+  if (siteKeyMatch && siteKeyMatch[1].trim()) {
+    const turnstileToken = await solveIdFreeTurnstile(cfg, `${baseURL}/`, siteKeyMatch[1].trim());
+    await idfreeRequest(
+      "/api/verify-turnstile.php",
+      {
+        "Content-Type": "application/json"
+      },
+      "POST",
+      JSON.stringify({ token: turnstileToken })
+    );
+  }
+
+  const sessionBytes = await idfreeRequest(
     "/api/session_verify.php",
     {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -327,6 +454,22 @@ async function fetchIdFree(cfg) {
     "POST",
     ""
   );
+  let sessionToken = token;
+  const sessionText = decodeBytes(sessionBytes).trim();
+  if (sessionText) {
+    let session;
+    try {
+      session = JSON.parse(sessionText);
+    } catch (error) {
+      throw new Error(`parse idfree session response: ${error.message}`);
+    }
+    if (session && session.ok === false) {
+      throw new Error(`verify idfree session: ${session.error || "unknown error"}`);
+    }
+    if (session && typeof session.token === "string" && session.token.trim()) {
+      sessionToken = session.token.trim();
+    }
+  }
 
   const body = decodeBytes(
     await idfreeRequest("/api/accounts.php", {
@@ -335,7 +478,7 @@ async function fetchIdFree(cfg) {
       "Sec-Fetch-Dest": "empty",
       "Sec-Fetch-Mode": "cors",
       "Sec-Fetch-Site": "same-origin",
-      "X-Token": token
+      "X-Token": sessionToken
     })
   );
   if (body.includes("INVALID_BROWSER")) {

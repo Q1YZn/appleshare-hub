@@ -8,7 +8,8 @@
     "pages:deploy": "wrangler pages deploy web --branch main",
     "worker:dev": "wrangler dev --config wrangler.worker.toml --test-scheduled",
     "worker:deploy": "wrangler deploy --config wrangler.worker.toml",
-    "check:providers": "node scripts/check-providers.mjs"
+    "check:providers": "node scripts/check-providers.mjs",
+    "check:idfree-mock": "node scripts/mock-idfree-provider.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.30.0"

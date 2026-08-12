@@ -137,6 +137,8 @@ Worker 的 `fetch` 入口也实现了相同刷新逻辑，可以用于手动触�
 | `HISTORY_PREFIX` | `snapshots/` | 历史快照前缀 |
 | `RETAIN_HISTORY` | `0` | 保留历史快照份数，`0` 表示每次刷新后删除全部历史 |
 | `REFRESH_TOKEN` | 空 | 手动刷新接口/Worker fetch 的 Bearer token |
+| `IDFREE_CAPTCHA_SOLVER` | `capsolver` | idfree 渠道 Turnstile 求解服务，支持 `capsolver` / `2captcha` |
+| `IDFREE_CAPTCHA_API_KEY` | 空 | idfree 渠道 Turnstile 求解服务 API key；未配置时该渠道会报配置类错误，不误报网络错误 |
 
 > 10 万用户量级的费用测算与后续优化思路见 [费用与调用优化](COST_OPTIMIZATION.md)。
 
@@ -152,6 +154,12 @@ npm install
 
 ```bash
 npm run check:providers
+```
+
+idfree 的 Turnstile 完整链路不依赖真实付费 key，可本地跑 mock 验证：
+
+```bash
+npm run check:idfree-mock
 ```
 
 启动 Pages 本地开发服务器：
