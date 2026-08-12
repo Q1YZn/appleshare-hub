@@ -71,6 +71,7 @@ onBeforeUnmount(() => {
       <span class="status-badge" :class="account.status">{{ account.status_label || "未知" }}</span>
       <span class="country">{{ account.country || "未知地区" }}</span>
       <span class="channel-tag">{{ channelLabel }}</span>
+      <span v-if="account.shadowrocket === true" class="sr-badge" title="确认渠道带有 Shadowrocket 配置">SR</span>
       <span class="updated">{{ account.updated_at || "" }}</span>
     </div>
     <div class="cred">

@@ -4,13 +4,12 @@ import { statusClass } from "../utils/format.js";
 defineProps({
   onlyAvailable: { type: Boolean, default: false },
   selectedCountry: { type: String, default: "" },
-  selectedChannel: { type: String, default: "" },
+  selectedShadowrocket: { type: String, default: "" },
   countryOptions: { type: Array, default: () => [] },
-  channelOptions: { type: Array, default: () => [] },
   legend: { type: Array, default: () => [] }
 });
 
-defineEmits(["update:onlyAvailable", "update:country", "update:channel"]);
+defineEmits(["update:onlyAvailable", "update:country", "update:shadowrocket"]);
 </script>
 
 <template>
@@ -37,16 +36,15 @@ defineEmits(["update:onlyAvailable", "update:country", "update:channel"]);
       </select>
     </label>
     <label class="filter-field">
-      <span>渠道</span>
+      <span>是否小火箭</span>
       <select
         class="filter-select"
-        :value="selectedChannel"
-        @change="$emit('update:channel', $event.target.value)"
+        :value="selectedShadowrocket"
+        @change="$emit('update:shadowrocket', $event.target.value)"
       >
-        <option value="">全部渠道</option>
-        <option v-for="option in channelOptions" :key="option.id" :value="option.id">
-          {{ option.label }}
-        </option>
+        <option value="">全部</option>
+        <option value="yes">有Shadowrocket</option>
+        <option value="uncertain">不确定</option>
       </select>
     </label>
     <div class="legend">

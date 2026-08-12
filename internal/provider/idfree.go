@@ -152,6 +152,7 @@ func (p *idfreeProvider) Fetch(ctx context.Context) ([]model.Account, error) {
 			StatusLabel:   label,
 			UpdatedAt:     item.LastCheck,
 			SourceURL:     p.baseURL + "/",
+			Shadowrocket:  false,
 		})
 	}
 	return accounts, nil

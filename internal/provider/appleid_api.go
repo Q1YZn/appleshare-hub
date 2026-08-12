@@ -91,6 +91,7 @@ func (p *appleidAPIProvider) Fetch(ctx context.Context) ([]model.Account, error)
 			StatusLabel:   label,
 			UpdatedAt:     item.Time,
 			SourceURL:     p.url,
+			Shadowrocket:  false,
 		})
 	}
 	return accounts, nil

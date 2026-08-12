@@ -11,3 +11,13 @@ dist/
 frontend/web/
 gcm-diagnose.log
 logs/
+
+# 渠道调试产物，不入库
+91unicorn-login.png
+unicorn-*.html
+unicorn-*.js
+unicorn-*.out
+unicorn-*.txt
+scripts/_cdp-*.mjs
+scripts/_inspect-*.mjs
+scripts/_decode-*.mjs

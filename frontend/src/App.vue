@@ -15,6 +15,7 @@ const { snapshot, loading, error, load } = useSnapshot();
 const onlyAvailable = ref(false);
 const selectedCountry = ref("");
 const selectedChannel = ref("");
+const selectedShadowrocket = ref("");
 const currentPage = ref(1);
 
 const warnings = computed(() => snapshot.value?.warnings || []);
@@ -61,6 +62,11 @@ const filteredAccounts = computed(() => {
   }
   if (selectedChannel.value) {
     accounts = accounts.filter((account) => account.channel === selectedChannel.value);
+  }
+  if (selectedShadowrocket.value === "yes") {
+    accounts = accounts.filter((account) => account.shadowrocket === true);
+  } else if (selectedShadowrocket.value === "uncertain") {
+    accounts = accounts.filter((account) => account.shadowrocket !== true);
   }
   return accounts;
 });
@@ -110,6 +116,11 @@ function setChannel(value) {
   currentPage.value = 1;
 }
 
+function setShadowrocket(value) {
+  selectedShadowrocket.value = value;
+  currentPage.value = 1;
+}
+
 function toggleChannel(channelId) {
   selectedChannel.value = selectedChannel.value === channelId ? "" : channelId;
   currentPage.value = 1;
@@ -143,16 +154,16 @@ async function refresh() {
       :total-pages="totalPages"
       :selected-country="selectedCountry"
       :selected-channel="selectedChannel"
+      :selected-shadowrocket="selectedShadowrocket"
       :only-available="onlyAvailable"
       :country-options="countryOptions"
-      :channel-options="channelOptions"
       :legend="legend"
       :loading="loading"
       :error="error"
       :generated-at="generatedText"
       @update:only-available="setOnlyAvailable"
       @update:country="setCountry"
-      @update:channel="setChannel"
+      @update:shadowrocket="setShadowrocket"
       @page="changePage"
     />
 

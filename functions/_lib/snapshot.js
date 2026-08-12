@@ -88,7 +88,8 @@ export function buildSnapshot(providers, results, now, cacheTTLSeconds) {
       order: index,
       status: succeeded ? "ok" : "error",
       updated_at: now.toISOString(),
-      account_count: accounts.length
+      account_count: accounts.length,
+      shadowrocket: accounts.some((account) => account.shadowrocket === true)
     };
     if (succeeded && accounts.length === 0) {
       channel.status = "empty";

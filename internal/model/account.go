@@ -26,6 +26,7 @@ type Account struct {
 	Priority      int    `json:"priority,omitempty"`
 	UpdatedAt     string `json:"updated_at"`
 	SourceURL     string `json:"source_url,omitempty"`
+	Shadowrocket  bool   `json:"shadowrocket"`
 }
 
 type ChannelState struct {
@@ -36,6 +37,7 @@ type ChannelState struct {
 	Error        string `json:"error,omitempty"`
 	AccountCount int    `json:"account_count"`
 	UpdatedAt    string `json:"updated_at"`
+	Shadowrocket bool   `json:"shadowrocket"`
 }
 
 type StatusInfo struct {

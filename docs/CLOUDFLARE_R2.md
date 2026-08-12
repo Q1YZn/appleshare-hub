@@ -9,7 +9,7 @@
 - 定时抓取由独立的 **Cloudflare Worker cron** 执行，不依赖 Pages 原生定时任务。
 - 每次成功写入新快照后，会按策略清理 R2 中的旧快照对象。
 
-Cloudflare Pages Functions 不能直接跑 Go 二进制，因此本分支把 5 个渠道适配器移植成了 JavaScript，逻辑与 Go 版保持一致：
+Cloudflare Pages Functions 不能直接跑 Go 二进制，因此本分支把 6 个渠道适配器移植成了 JavaScript，逻辑与 Go 版保持一致：
 
 | 渠道 | 类型 | 移植位置 |
 | --- | --- | --- |
@@ -18,6 +18,7 @@ Cloudflare Pages Functions 不能直接跑 Go 二进制，因此本分支把 5 �
 | 小优 ID（三步会话） | `idfree` | `functions/_lib/providers.js` |
 | 云码酷 | `appleid_api` | `functions/_lib/providers.js` |
 | free.iosapp.icu 文本源 | `iosapp_text` | `functions/_lib/providers.js` |
+| 91unicorn 知识库 | `unicorn_knowledge` | `functions/_lib/providers.js` |
 
 ## 2. 整体架构
 
@@ -27,7 +28,7 @@ flowchart LR
     User -->|GET /api/accounts| Fn[Pages Functions]
     Pages -->|fetch JSON| Fn
     Fn -->|读最新快照| R2[(R2 bucket)]
-    Cron[Cron Worker 每 5 分钟] -->|并发抓取全部渠道| Upstream[sha.cx / fanqiangnan / idfree / appleid_api / iosapp_text]
+    Cron[Cron Worker 每 5 分钟] -->|并发抓取全部渠道| Upstream[sha.cx / fanqiangnan / idfree / appleid_api / iosapp_text / unicorn_knowledge]
     Cron -->|写入新快照| R2
     Cron -->|删除旧快照对象| R2
 ```
@@ -60,7 +61,7 @@ flowchart LR
 │   │   └── refresh.js              # 手动/测试触发刷新（可带 token 保护）
 │   └── _lib/
 │       ├── config.js               # 从环境变量加载渠道配置，内置默认配置
-│       ├── providers.js            # 5 个渠道的 JS 适配器
+│       ├── providers.js            # 6 个渠道的 JS 适配器
 │       ├── snapshot.js             # 快照聚合、排序、计数、提示文案
 │       ├── r2.js                   # R2 读取与 JSON 响应工具
 │       └── refresh.js              # 抓取 + 写 R2 + 清理旧对象的核心逻辑
@@ -149,6 +150,7 @@ Worker 的 `fetch` 入口也实现了相同刷新逻辑，可以用于手动触�
 | `IDFREE_CAPTCHA_SOLVER` | `capsolver` | idfree 渠道 Turnstile 求解服务，支持 `capsolver` / `2captcha` |
 | `IDFREE_CAPTCHA_API_KEY` | 空 | idfree 渠道 Turnstile 求解服务 API key；未配置时该渠道会报配置类错误，不误报网络错误 |
 | `IDFREE_PROXY_URL` | 空 | idfree 渠道上游的 fetch 代理服务地址（非标准 HTTP 代理），例如 `https://your-proxy.example.com`；程序会请求 `<proxy_url>/fetch?url=<URL编码后的目标地址>`，由该服务转发并原样返回响应头/正文。上游会把 Cloudflare 数据中心出口 IP 标记为黑名单，因此需要代理出口 |
+| `UNICORN_TOKEN` | 空 | 91unicorn 知识库登录 token；未配置时该渠道返回“未登录或登陆已过期” |
 
 > 10 万用户量级的费用测算与后续优化思路见 [费用与调用优化](COST_OPTIMIZATION.md)。
 

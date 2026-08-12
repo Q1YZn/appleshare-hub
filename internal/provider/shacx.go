@@ -197,6 +197,7 @@ func (p *shaCXProvider) fetchOne(ctx context.Context, url string) ([]model.Accou
 			RawStatus:     item.Status,
 			UpdatedAt:     item.Time,
 			SourceURL:     url,
+			Shadowrocket:  true,
 		})
 	}
 	return accounts, nil

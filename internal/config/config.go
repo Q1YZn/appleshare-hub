@@ -87,6 +87,16 @@ func Default() Config {
 					},
 				},
 			},
+			{
+				ID:      "unicorn_knowledge_01",
+				Type:    "unicorn_knowledge",
+				Name:    "独角兽知识库（91unicorn）",
+				URL:     "https://91unicorn.cloud/api/v1/user/knowledge/fetch?id=34&language=zh-CN",
+				Enabled: true,
+				Options: map[string]any{
+					"token": "",
+				},
+			},
 		},
 	}
 }

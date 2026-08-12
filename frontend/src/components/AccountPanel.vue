@@ -12,16 +12,16 @@ defineProps({
   totalPages: { type: Number, default: 1 },
   selectedCountry: { type: String, default: "" },
   selectedChannel: { type: String, default: "" },
+  selectedShadowrocket: { type: String, default: "" },
   onlyAvailable: { type: Boolean, default: false },
   countryOptions: { type: Array, default: () => [] },
-  channelOptions: { type: Array, default: () => [] },
   legend: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
   error: { type: String, default: "" },
   generatedAt: { type: String, default: "正在获取…" }
 });
 
-defineEmits(["update:onlyAvailable", "update:country", "update:channel", "page"]);
+defineEmits(["update:onlyAvailable", "update:country", "update:shadowrocket", "page"]);
 </script>
 
 <template>
@@ -34,13 +34,12 @@ defineEmits(["update:onlyAvailable", "update:country", "update:channel", "page"]
       <FilterControls
         :only-available="onlyAvailable"
         :selected-country="selectedCountry"
-        :selected-channel="selectedChannel"
+        :selected-shadowrocket="selectedShadowrocket"
         :country-options="countryOptions"
-        :channel-options="channelOptions"
         :legend="legend"
         @update:only-available="$emit('update:onlyAvailable', $event)"
         @update:country="$emit('update:country', $event)"
-        @update:channel="$emit('update:channel', $event)"
+        @update:shadowrocket="$emit('update:shadowrocket', $event)"
       />
     </div>
 

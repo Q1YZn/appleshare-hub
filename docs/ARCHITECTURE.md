@@ -22,11 +22,13 @@ flowchart LR
     Registry --> P4[idfree Provider]
     Registry --> P5[appleid_api Provider]
     Registry --> P6[iosapp_text Provider]
+    Registry --> P7[unicorn_knowledge Provider]
     P1 --> S1[sha.cx 双链接合并]
     P3 --> S3[data_sync.php]
     P4 --> S4[idfree.top 三步会话]
     P5 --> S5[appleid.uczyw.us]
     P6 --> S6[free.iosapp.icu 1-3.txt]
+    P7 --> S7[91unicorn 知识库登录接口]
     Service --> Cache[(300s 内存缓存)]
 ```
 
@@ -66,6 +68,7 @@ type Factory func(cfg Config) (Provider, error)
 | `idfree` | `idfree.go` | Turnstile 验证 + Cookie + 会话 token 多步会话 |
 | `appleid_api` | `appleid_api.go` | 无鉴权 JSON |
 | `iosapp_text` | `iosapp_text.go` | 1-3 个纯文本文件，无检查时间，低优先级 |
+| `unicorn_knowledge` | `unicorn_knowledge.go` | 登录后的知识库 JSON/富文本，需要 Bearer token，确认有 Shadowrocket |
 
 新增渠道的步骤：
 

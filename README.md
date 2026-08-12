@@ -8,10 +8,10 @@ AppleShare Hub 是一个使用 Go + Gin 构建的苹果账号分发状态服务�
 - 通过 `Provider` 接口抽象账号渠道，后续接入新的渠道时无需改动页面和 API。
 - 短时间缓存上游结果，避免每个用户访问都打上游接口。
 - 网页实时展示账号状态、可用数量、渠道健康度、状态说明。
-- 支持按国家/地区和渠道筛选，渠道状态以字母编号紧凑展示，渠道 A 固定在最前。
+- 支持按国家/地区、渠道和是否附带 Shadowrocket 筛选，渠道状态以字母编号紧凑展示，渠道 A 固定在最前。
 - 账号列表默认每页展示 8 条，支持上一页、下一页和页码跳转。
 - 内置 iOS 26 登录/退出教程、Apple 官方示意图和 idfree.top 详细图文教程。
-- 已接入 sha.cx、翻墙男、小优 ID、云码酷、free.iosapp.icu 五类来源，后续可通过 `Provider` 继续扩展。
+- 已接入 sha.cx、翻墙男、小优 ID、云码酷、free.iosapp.icu、91unicorn 知识库等来源，后续可通过 `Provider` 继续扩展。
 - 附带架构文档、渠道接入文档和使用教程。
 
 ## 重要安全提示
@@ -103,10 +103,22 @@ go run .
           "https://free.iosapp.icu/go-rod/3.txt"
         ]
       }
+    },
+    {
+      "id": "unicorn_knowledge_01",
+      "type": "unicorn_knowledge",
+      "name": "独角兽知识库（91unicorn）",
+      "url": "https://91unicorn.cloud/api/v1/user/knowledge/fetch?id=34&language=zh-CN",
+      "enabled": true,
+      "options": {
+        "token": ""
+      }
     }
   ]
 }
 ```
+
+91unicorn 需要登录态：登录后从浏览器 localStorage 取 token，填入 `options.token`，或设置环境变量 `UNICORN_TOKEN`，程序会自动携带 `Authorization: Bearer <token>`。没有 token 时该渠道会标记为错误，不影响其他渠道。
 
 ## API
 
@@ -132,6 +144,7 @@ go run .
       "status_message": "检测正常，可登录 App Store",
       "status_label": "可用",
       "raw_status": 1,
+      "shadowrocket": true,
       "updated_at": "2026-08-07 00:50:47",
       "source_url": "https://d8p8e.sha.cx/..."
     }
@@ -143,6 +156,7 @@ go run .
       "order": 0,
       "status": "ok",
       "account_count": 1,
+      "shadowrocket": true,
       "updated_at": "2026-08-07T01:00:00+08:00"
     }
   ],
@@ -171,7 +185,7 @@ go run .
 ├── internal/
 │   ├── config/                   # 配置文件解析
 │   ├── model/                    # 账号、渠道、快照等数据模型
-│   ├── provider/                 # 渠道抽象与 sha.cx / fanqiangnan / idfree / appleid_api / iosapp_text 实现
+│   ├── provider/                 # 渠道抽象与 sha.cx / fanqiangnan / idfree / appleid_api / iosapp_text / unicorn_knowledge 实现
 │   ├── service/                  # 缓存、聚合、状态计算
 │   └── httpapi/                  # Gin 路由与 API
 ├── frontend/                     # Vite + Vue 3 前端源码

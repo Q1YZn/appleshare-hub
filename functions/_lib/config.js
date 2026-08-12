@@ -62,6 +62,16 @@ const DEFAULT_CONFIG = {
           "https://free.iosapp.icu/go-rod/3.txt"
         ]
       }
+    },
+    {
+      id: "unicorn_knowledge_01",
+      type: "unicorn_knowledge",
+      name: "独角兽知识库（91unicorn）",
+      url: "https://91unicorn.cloud/api/v1/user/knowledge/fetch?id=34&language=zh-CN",
+      enabled: true,
+      options: {
+        token: ""
+      }
     }
   ]
 };
@@ -107,6 +117,9 @@ export function loadConfig(env = {}) {
     }
     if (env.IDFREE_PROXY_URL) {
       provider.options.proxy_url = env.IDFREE_PROXY_URL;
+    }
+    if (env.UNICORN_TOKEN) {
+      provider.options.token = env.UNICORN_TOKEN;
     }
   }
   return config;

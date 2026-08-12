@@ -17,7 +17,8 @@ const stateLabel = {
 function channelTitle(channel, index) {
   const label = stateLabel[channel.status] || channel.status;
   const detail = channel.error ? `：${channel.error}` : "";
-  return `渠道${channelLetter(index)} ${channel.name}：${label}${detail}`;
+  const shadowrocket = channel.shadowrocket === true ? "，确认有 Shadowrocket" : "，Shadowrocket 不确定";
+  return `渠道${channelLetter(index)} ${channel.name}：${label}${detail}${shadowrocket}`;
 }
 </script>
 
@@ -37,7 +38,7 @@ function channelTitle(channel, index) {
         @click="$emit('toggle', channel.id)"
       >
         <i class="dot" :class="statusClass(channel.status)"></i>
-        渠道{{ channelLetter(index) }}
+        {{ channelLetter(index) }}
       </button>
     </div>
   </section>

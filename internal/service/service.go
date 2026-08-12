@@ -75,11 +75,12 @@ func (s *Service) build(ctx context.Context) model.Snapshot {
 			defer wg.Done()
 			accounts, err := p.Fetch(ctx)
 			state := model.ChannelState{
-				ID:        p.ID(),
-				Name:      p.Name(),
-				Order:     i,
-				Status:    "ok",
-				UpdatedAt: time.Now().Format(time.RFC3339),
+				ID:           p.ID(),
+				Name:         p.Name(),
+				Order:        i,
+				Status:       "ok",
+				UpdatedAt:    time.Now().Format(time.RFC3339),
+				Shadowrocket: channelHasShadowrocket(accounts),
 			}
 			if err != nil {
 				state.Status = "error"
@@ -168,6 +169,15 @@ func accountStatusRank(status model.Status) int {
 	default:
 		return 4
 	}
+}
+
+func channelHasShadowrocket(accounts []model.Account) bool {
+	for _, account := range accounts {
+		if account.Shadowrocket {
+			return true
+		}
+	}
+	return false
 }
 
 func defaultWarnings() []model.Warning {

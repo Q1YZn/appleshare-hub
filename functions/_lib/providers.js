@@ -78,15 +78,15 @@ function collectShaCXUrls(cfg) {
 function mapShaStatus(raw) {
   switch (raw) {
     case 0:
-      return { status: "checking", label: "检测中", message: "账号正在检测，请稍后刷新" };
+      return { status: "checking", status_label: "检测中", status_message: "账号正在检测，请稍后刷新" };
     case 1:
-      return { status: "available", label: "可用", message: "检测正常，可登录 App Store" };
+      return { status: "available", status_label: "可用", status_message: "检测正常，可登录 App Store" };
     case 2:
-      return { status: "unavailable", label: "异常", message: "账号异常，请勿使用" };
+      return { status: "unavailable", status_label: "异常", status_message: "账号异常，请勿使用" };
     case 3:
-      return { status: "pending", label: "待检测", message: "账号等待检测" };
+      return { status: "pending", status_label: "待检测", status_message: "账号等待检测" };
     default:
-      return { status: "unknown", label: "未知", message: "未知状态" };
+      return { status: "unknown", status_label: "未知", status_message: "未知状态" };
   }
 }
 
@@ -126,6 +126,7 @@ async function fetchShaCX(cfg) {
         country: item.country || "",
         username: item.username || "",
         password: item.password || "",
+        shadowrocket: true,
         ...mapShaStatus(item.status),
         raw_status: item.status,
         updated_at: item.time || "",
@@ -159,12 +160,12 @@ async function fetchShaCX(cfg) {
 function mapTextStatus(raw, normalMessage, abnormalMessage, unknownMessage) {
   const text = String(raw || "");
   if (text.includes("正常")) {
-    return { status: "available", label: "可用", message: normalMessage };
+    return { status: "available", status_label: "可用", status_message: normalMessage };
   }
   if (text.includes("异常") || text.includes("失败")) {
-    return { status: "unavailable", label: "异常", message: abnormalMessage };
+    return { status: "unavailable", status_label: "异常", status_message: abnormalMessage };
   }
-  return { status: "pending", label: "待检测", message: unknownMessage };
+  return { status: "pending", status_label: "待检测", status_message: unknownMessage };
 }
 
 async function fetchFanqiangnan(cfg) {
@@ -201,6 +202,7 @@ async function fetchFanqiangnan(cfg) {
         country,
         username: String(item.fullEmail || "").trim(),
         password: item.password || "",
+        shadowrocket: false,
         ...mapped,
         updated_at: item.checkTime || "",
         source_url: cfg.url
@@ -509,6 +511,7 @@ async function fetchIdFree(cfg) {
       country: String(item.region_display || "").trim(),
       username: String(item.username || "").trim(),
       password: item.password || "",
+      shadowrocket: false,
       status: status ? "available" : "unavailable",
       status_label: status ? "可用" : "异常",
       status_message: status
@@ -550,6 +553,7 @@ async function fetchAppleidAPI(cfg) {
       country: String(item.region || "").trim(),
       username: String(item.email || "").trim(),
       password: item.password || "",
+      shadowrocket: false,
       ...mapped,
       updated_at: item.timestamp || item.time || "",
       source_url: cfg.url
@@ -596,8 +600,8 @@ function mapIOSAppStatus(raw, checkTime) {
   if (text.includes("可用")) {
     return {
       status: "available",
-      label: "可用",
-      message: String(checkTime || "").trim()
+      status_label: "可用",
+      status_message: String(checkTime || "").trim()
         ? "文本源标记可用"
         : "文本源标记可用，但未提供检查时间，优先使用带检测时间的账号"
     };
@@ -605,14 +609,14 @@ function mapIOSAppStatus(raw, checkTime) {
   if (text.includes("异常") || text.includes("失败")) {
     return {
       status: "unavailable",
-      label: "异常",
-      message: "文本源标记异常，请勿使用"
+      status_label: "异常",
+      status_message: "文本源标记异常，请勿使用"
     };
   }
   return {
     status: "pending",
-    label: "待检测",
-    message: "文本源未提供明确状态"
+    status_label: "待检测",
+    status_message: "文本源未提供明确状态"
   };
 }
 
@@ -640,6 +644,7 @@ async function fetchIOSAppText(cfg) {
         country: "",
         username: String(raw.Account || "").trim(),
         password: String(raw.Password || "").trim(),
+        shadowrocket: false,
         ...mapIOSAppStatus(raw.Status, raw.CheckTime),
         priority: 1,
         updated_at: String(raw.CheckTime || "").trim(),
@@ -663,6 +668,168 @@ async function fetchIOSAppText(cfg) {
   return accounts;
 }
 
+function collectUnicornAccountObjects(value, accounts, depth = 0) {
+  if (depth > 8 || !value || typeof value !== "object") {
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectUnicornAccountObjects(item, accounts, depth + 1);
+    }
+    return;
+  }
+  const username = String(
+    value.username || value.email || value.account || value.user || ""
+  ).trim();
+  const password = String(value.password || value.pass || value.pwd || "").trim();
+  if (username && password && username.includes("@")) {
+    accounts.push(value);
+    return;
+  }
+  for (const key of Object.keys(value)) {
+    collectUnicornAccountObjects(value[key], accounts, depth + 1);
+  }
+}
+
+function parseUnicornAccountText(text) {
+  const accounts = [];
+  const emailPattern = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\u00a0/g, " ")
+      .trim();
+    let match;
+    emailPattern.lastIndex = 0;
+    while ((match = emailPattern.exec(line))) {
+      const username = match[0];
+      let tail = line
+        .slice(match.index + username.length)
+        .replace(/^[\s:：|,，、]+/, "");
+      tail = tail.replace(/^(密码|password|pwd)([:：]|\s+)\s*/i, "");
+      const passwordMatch = tail.match(/^([^\s|,，;；]+)/);
+      if (passwordMatch && passwordMatch[1].length >= 4) {
+        accounts.push({ username, password: passwordMatch[1] });
+      }
+    }
+  }
+  return accounts;
+}
+
+function mapUnicornStatus(value) {
+  const text = String(value || "").trim().toLowerCase();
+  const availableTokens = ["正常", "可用", "成功", "valid", "ok", "available", "success"];
+  const unavailableTokens = ["异常", "失效", "不可用", "已失效", "失败", "invalid", "unavailable", "failed", "error"];
+  if (availableTokens.some((token) => text.includes(token))) {
+    return { status: "available", status_label: "可用", status_message: "知识库标记可用，建议使用前再确认" };
+  }
+  if (unavailableTokens.some((token) => text.includes(token))) {
+    return { status: "unavailable", status_label: "异常", status_message: "知识库标记异常，请勿使用" };
+  }
+  return { status: "pending", status_label: "待确认", status_message: "知识库未提供明确状态" };
+}
+
+async function fetchUnicornKnowledge(cfg) {
+  const url = String(cfg.url || "").trim();
+  if (!url) {
+    throw new Error(`unicorn_knowledge provider "${cfg.id}" requires url`);
+  }
+  const headers = {
+    "User-Agent": DEFAULT_USER_AGENT,
+    Accept: "application/json, text/plain, text/html, */*"
+  };
+  const token = String((cfg.options && cfg.options.token) || "").trim();
+  if (token) {
+    headers.Authorization = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs(cfg, 20));
+  let response;
+  try {
+    response = await fetch(url, {
+      headers,
+      redirect: "follow",
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+  const contentType = response.headers.get("content-type") || "";
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  const text = decodeBytes(bytes);
+
+  let parsed = null;
+  if (contentType.includes("json") || text.trim().startsWith("{")) {
+    try {
+      parsed = JSON.parse(text);
+    } catch (_) {
+      // fall through to plain text parsing below
+    }
+  }
+  if (!response.ok) {
+    const hint = unicornErrorHint(parsed);
+    throw new Error(
+      hint ? `unicorn_knowledge: source returned HTTP ${response.status}: ${hint}` : `unicorn_knowledge: HTTP ${response.status} for ${url}`
+    );
+  }
+
+  const rawAccounts = [];
+  if (parsed) {
+    collectUnicornAccountObjects(parsed, rawAccounts);
+  }
+  if (rawAccounts.length === 0) {
+    rawAccounts.push(...parseUnicornAccountText(text));
+  }
+  if (rawAccounts.length === 0) {
+    const hint = unicornErrorHint(parsed);
+    throw new Error(
+      hint ? `unicorn_knowledge: ${hint}` : "unicorn_knowledge: no accounts found in knowledge response"
+    );
+  }
+
+  const accounts = [];
+  const seen = new Set();
+  rawAccounts.forEach((item, index) => {
+    const username = String(
+      item.username || item.email || item.account || item.user || ""
+    ).trim();
+    if (!username || seen.has(username)) {
+      return;
+    }
+    seen.add(username);
+    const password = String(item.password || item.pass || item.pwd || "").trim();
+    const country = String(item.country || item.region || item.location || "").trim();
+    const rawStatus = String(item.status || item.state || item.result || "").trim();
+    accounts.push({
+      id: `${cfg.id}:${username}`,
+      channel: cfg.id,
+      channel_name: cfg.name,
+      country,
+      username,
+      password,
+      shadowrocket: true,
+      ...mapUnicornStatus(rawStatus),
+      priority: index,
+      updated_at: String(item.updated_at || item.time || item.check_time || "").trim(),
+      source_url: url
+    });
+  });
+  return accounts;
+}
+
+function unicornErrorHint(parsed) {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return "";
+  }
+  for (const key of ["message", "msg", "error", "reason"]) {
+    if (typeof parsed[key] === "string" && parsed[key].trim()) {
+      return parsed[key].trim();
+    }
+  }
+  return "";
+}
+
 export function createProvider(cfg) {
   switch (cfg.type) {
     case "sha_cx":
@@ -675,6 +842,8 @@ export function createProvider(cfg) {
       return { id: cfg.id, name: cfg.name, fetch: () => fetchAppleidAPI(cfg) };
     case "iosapp_text":
       return { id: cfg.id, name: cfg.name, fetch: () => fetchIOSAppText(cfg) };
+    case "unicorn_knowledge":
+      return { id: cfg.id, name: cfg.name, fetch: () => fetchUnicornKnowledge(cfg) };
     default:
       throw new Error(`unknown provider type "${cfg.type}"`);
   }

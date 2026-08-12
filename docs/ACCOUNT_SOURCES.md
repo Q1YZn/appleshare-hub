@@ -11,6 +11,7 @@
 | `idfree_01` | `idfree` | 小优 ID（idfree） | <https://idfree.top/> |
 | `appleid_api_01` | `appleid_api` | 云码酷（appleid.uczyw.us） | <https://appleid.uczyw.us/api/accounts> |
 | `iosapp_text_01` | `iosapp_text` | 免费文本源（iosapp.icu） | <https://free.iosapp.icu/go-rod/1.txt> 等 1-3 |
+| `unicorn_knowledge_01` | `unicorn_knowledge` | 独角兽知识库（91unicorn） | <https://91unicorn.cloud/api/v1/user/knowledge/fetch?id=34&language=zh-CN> |
 
 另有已配置但默认关闭的备用渠道：
 
@@ -211,6 +212,30 @@
 - 当前文件未提供检查时间，页面会标注“文本源，未提供检查时间，优先使用带检测时间的账号”，属于低优先级补充源。
 - `model.Account.Priority = 1` 会让这类账号在可用状态下排到带检测时间的账号后面。
 - 首页是 GBK，文本文件本身可能是 UTF-8 或 GBK；`decodeMaybeGBK` 会自动处理。
+
+### 2.6 91unicorn 知识库
+
+`GET https://91unicorn.cloud/api/v1/user/knowledge/fetch?id=34&language=zh-CN` 是登录后的知识库接口，需要携带登录 token：
+
+```text
+Authorization: Bearer <登录后从 localStorage 取到的 token>
+```
+
+未登录或 token 过期时返回 `403`：
+
+```json
+{
+  "message": "未登录或登陆已过期"
+}
+```
+
+接入要点：
+
+- 该接口有 Cloudflare 防护且必须登录，程序在无 token 时会把渠道标记为错误并返回上游原文提示，不影响其他渠道。
+- token 可通过配置 `options.token` 注入，或设置环境变量 `UNICORN_TOKEN`，程序会自动补成 `Bearer <token>`。
+- 返回结构暂未拿到真实成功样例，代码同时支持 JSON 递归查找（`username/email/account` + `password/pass/pwd`）和纯文本邮箱密码行兜底。
+- 91unicorn 知识库是作者整理的小火箭账号来源，当前实现把该渠道账号标记为“确认有 Shadowrocket”，前端可用“有Shadowrocket / 不确定”筛选。
+- 该渠道需要登录态且结构可能随知识库页面变化，优先级低于公开 JSON 接口。
 
 ## 3. 状态映射
 

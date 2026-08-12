@@ -87,6 +87,7 @@ func (p *iosappTextProvider) Fetch(ctx context.Context) ([]model.Account, error)
 			Priority:      1,
 			UpdatedAt:     strings.TrimSpace(raw.CheckTime),
 			SourceURL:     url,
+			Shadowrocket:  false,
 		})
 	}
 	if len(errs) > 0 {
