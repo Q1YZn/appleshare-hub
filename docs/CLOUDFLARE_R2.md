@@ -139,6 +139,7 @@ Worker 的 `fetch` 入口也实现了相同刷新逻辑，可以用于手动触�
 | `REFRESH_TOKEN` | 空 | 手动刷新接口/Worker fetch 的 Bearer token |
 | `IDFREE_CAPTCHA_SOLVER` | `capsolver` | idfree 渠道 Turnstile 求解服务，支持 `capsolver` / `2captcha` |
 | `IDFREE_CAPTCHA_API_KEY` | 空 | idfree 渠道 Turnstile 求解服务 API key；未配置时该渠道会报配置类错误，不误报网络错误 |
+| `IDFREE_PROXY_URL` | 空 | idfree 渠道上游代理地址，例如 `http://user:pass@host:port`；上游会把 Cloudflare 出口 IP 标记为黑名单，需要代理出口 |
 
 > 10 万用户量级的费用测算与后续优化思路见 [费用与调用优化](COST_OPTIMIZATION.md)。
 

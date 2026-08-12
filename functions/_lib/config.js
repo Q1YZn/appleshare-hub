@@ -32,6 +32,7 @@ const DEFAULT_CONFIG = {
       options: {
         captcha_solver: "capsolver",
         captcha_api_key: "",
+        proxy_url: "",
         captcha_timeout_seconds: 30
       }
     },
@@ -103,6 +104,9 @@ export function loadConfig(env = {}) {
     }
     if (env.IDFREE_CAPTCHA_API_KEY) {
       provider.options.captcha_api_key = env.IDFREE_CAPTCHA_API_KEY;
+    }
+    if (env.IDFREE_PROXY_URL) {
+      provider.options.proxy_url = env.IDFREE_PROXY_URL;
     }
   }
   return config;

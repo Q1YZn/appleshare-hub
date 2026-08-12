@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -201,6 +202,38 @@ func TestIDFreeProviderTurnstileFetch(t *testing.T) {
 	}))
 	defer site.Close()
 
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		target := r.URL.Query().Get("url")
+		if target == "" {
+			http.Error(w, "missing target url", http.StatusBadRequest)
+			return
+		}
+		req, err := http.NewRequest(r.Method, target, r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		for key, values := range r.Header {
+			for _, value := range values {
+				req.Header.Add(key, value)
+			}
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		defer resp.Body.Close()
+		for key, values := range resp.Header {
+			for _, value := range values {
+				w.Header().Add(key, value)
+			}
+		}
+		w.WriteHeader(resp.StatusCode)
+		_, _ = io.Copy(w, resp.Body)
+	}))
+	defer proxy.Close()
+
 	p, err := newIDFreeProvider(Config{
 		ID:   "idfree",
 		Name: "小优 ID",
@@ -209,6 +242,7 @@ func TestIDFreeProviderTurnstileFetch(t *testing.T) {
 			"captcha_solver":          "capsolver",
 			"captcha_api_key":         "test-key",
 			"captcha_api_url":         solver.URL,
+			"proxy_url":               proxy.URL,
 			"captcha_timeout_seconds": float64(10),
 		},
 	})

@@ -153,12 +153,15 @@
   "options": {
     "captcha_solver": "capsolver",
     "captcha_api_key": "",
+    "proxy_url": "",
     "captcha_timeout_seconds": 30
   }
 }
 ```
 
-也可用环境变量 `IDFREE_CAPTCHA_SOLVER` 和 `IDFREE_CAPTCHA_API_KEY` 覆盖，避免把付费 key 写进仓库或配置快照。
+也可用环境变量 `IDFREE_CAPTCHA_SOLVER`、`IDFREE_CAPTCHA_API_KEY` 和 `IDFREE_PROXY_URL` 覆盖，避免把付费 key 写进仓库或配置快照。
+
+2026-08-12 实测：上游对 Cloudflare 数据中心出口返回 `Blocked: blacklisted IP`，所以 Cloudflare Worker 抓取时必须在 `proxy_url` 配置一个未被拉黑的 HTTP/HTTPS 代理，否则会在第一步 GET 首页就拿到 403。
 
 ### 2.4 appleid.uczyw.us
 

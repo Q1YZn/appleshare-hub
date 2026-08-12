@@ -22,14 +22,15 @@ var (
 )
 
 type idfreeProvider struct {
-	id               string
-	name             string
-	baseURL          string
-	client           *http.Client
-	captchaSolver    string
-	captchaAPIKey    string
-	captchaAPIURL    string
-	captchaTimeout   time.Duration
+	id             string
+	name           string
+	baseURL        string
+	client         *http.Client
+	captchaSolver  string
+	captchaAPIKey  string
+	captchaAPIURL  string
+	captchaTimeout time.Duration
+	proxyURL       string
 }
 
 type idfreeRawAccount struct {
@@ -58,11 +59,15 @@ func newIDFreeProvider(cfg Config) (Provider, error) {
 	captchaSolver := strings.ToLower(strings.TrimSpace(optionString(cfg, "captcha_solver")))
 	captchaAPIKey := strings.TrimSpace(optionString(cfg, "captcha_api_key"))
 	captchaAPIURL := strings.TrimRight(strings.TrimSpace(optionString(cfg, "captcha_api_url")), "/")
+	proxyURL := strings.TrimRight(strings.TrimSpace(optionString(cfg, "proxy_url")), "/")
 	if value := strings.TrimSpace(os.Getenv("IDFREE_CAPTCHA_SOLVER")); value != "" {
 		captchaSolver = strings.ToLower(value)
 	}
 	if value := strings.TrimSpace(os.Getenv("IDFREE_CAPTCHA_API_KEY")); value != "" {
 		captchaAPIKey = value
+	}
+	if value := strings.TrimSpace(os.Getenv("IDFREE_PROXY_URL")); value != "" {
+		proxyURL = strings.TrimRight(value, "/")
 	}
 	captchaTimeout := 30 * time.Second
 	if v, ok := cfg.Options["captcha_timeout_seconds"].(float64); ok && v > 0 {
@@ -76,6 +81,7 @@ func newIDFreeProvider(cfg Config) (Provider, error) {
 		captchaAPIKey:  captchaAPIKey,
 		captchaAPIURL:  captchaAPIURL,
 		captchaTimeout: captchaTimeout,
+		proxyURL:       proxyURL,
 		client: &http.Client{
 			Timeout: optionTimeout(cfg, 20*time.Second),
 			Jar:     jar,
@@ -153,10 +159,10 @@ func (p *idfreeProvider) Fetch(ctx context.Context) ([]model.Account, error) {
 
 func (p *idfreeProvider) establishSession(ctx context.Context) (string, string, error) {
 	headers := p.baseHeaders()
-	if _, err := fetchBody(ctx, p.client, http.MethodGet, p.baseURL+"/", headers, nil); err != nil {
+	if _, err := fetchBody(ctx, p.client, http.MethodGet, p.requestURL("/"), headers, nil); err != nil {
 		return "", "", fmt.Errorf("initialize idfree session: %w", err)
 	}
-	body, err := fetchBody(ctx, p.client, http.MethodGet, p.baseURL+"/", headers, nil)
+	body, err := fetchBody(ctx, p.client, http.MethodGet, p.requestURL("/"), headers, nil)
 	if err != nil {
 		return "", "", fmt.Errorf("load idfree page: %w", err)
 	}
@@ -179,7 +185,7 @@ func (p *idfreeProvider) verifySession(ctx context.Context, token string) (strin
 	headers := p.baseHeaders()
 	headers.Set("Content-Type", "application/x-www-form-urlencoded")
 	headers.Set("X-Token", token)
-	body, err := fetchBody(ctx, p.client, http.MethodPost, p.baseURL+"/api/session_verify.php", headers, strings.NewReader(""))
+	body, err := fetchBody(ctx, p.client, http.MethodPost, p.requestURL("/api/session_verify.php"), headers, strings.NewReader(""))
 	if err != nil {
 		return "", fmt.Errorf("verify idfree session: %w", err)
 	}
@@ -232,10 +238,18 @@ func (p *idfreeProvider) verifyTurnstile(ctx context.Context, siteKey string) er
 	}
 	headers := p.baseHeaders()
 	headers.Set("Content-Type", "application/json")
-	if _, err := fetchBody(ctx, p.client, http.MethodPost, p.baseURL+"/api/verify-turnstile.php", headers, bytes.NewReader(payload)); err != nil {
+	if _, err := fetchBody(ctx, p.client, http.MethodPost, p.requestURL("/api/verify-turnstile.php"), headers, bytes.NewReader(payload)); err != nil {
 		return fmt.Errorf("verify idfree turnstile: %w", err)
 	}
 	return nil
+}
+
+func (p *idfreeProvider) requestURL(path string) string {
+	target := p.baseURL + path
+	if p.proxyURL == "" {
+		return target
+	}
+	return p.proxyURL + "/fetch?url=" + url.QueryEscape(target)
 }
 
 func (p *idfreeProvider) solverAPIURL(fallback string) string {
@@ -273,8 +287,8 @@ func (p *idfreeProvider) solveCapsolverTurnstile(ctx context.Context, siteKey st
 	deadline := time.Now().Add(p.captchaTimeout)
 	for {
 		var result struct {
-			Status           string `json:"status"`
-			Solution         *struct {
+			Status   string `json:"status"`
+			Solution *struct {
 				Token string `json:"token"`
 			} `json:"solution"`
 			ErrorDescription string `json:"errorDescription"`
@@ -385,7 +399,7 @@ func (p *idfreeProvider) fetchAccounts(ctx context.Context, token string) ([]byt
 	headers.Set("Sec-Fetch-Mode", "cors")
 	headers.Set("Sec-Fetch-Site", "same-origin")
 	headers.Set("X-Token", token)
-	return fetchBody(ctx, p.client, http.MethodGet, p.baseURL+"/api/accounts.php", headers, nil)
+	return fetchBody(ctx, p.client, http.MethodGet, p.requestURL("/api/accounts.php"), headers, nil)
 }
 
 func (p *idfreeProvider) baseHeaders() http.Header {

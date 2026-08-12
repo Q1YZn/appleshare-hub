@@ -46,6 +46,30 @@ const solver = await listen(async (request, response) => {
   json(response, { errorDescription: "unknown solver endpoint" }, 404);
 });
 
+const proxy = await listen(async (request, response) => {
+  const url = new URL(request.url, "http://localhost");
+  if (url.pathname !== "/fetch") {
+    json(response, { error: "not found" }, 404);
+    return;
+  }
+  const target = url.searchParams.get("url");
+  if (!target) {
+    json(response, { error: "missing target url" }, 400);
+    return;
+  }
+  const upstream = await fetch(target, {
+    method: request.method,
+    headers: request.headers,
+    body: ["GET", "HEAD"].includes(request.method) ? undefined : await readBody(request),
+    redirect: "follow"
+  });
+  const body = await upstream.arrayBuffer();
+  response.writeHead(upstream.status, {
+    "Content-Type": upstream.headers.get("content-type") || "application/octet-stream"
+  });
+  response.end(Buffer.from(body));
+});
+
 const site = await listen(async (request, response) => {
   const url = new URL(request.url, "http://localhost");
   if (url.pathname === "/") {
@@ -112,6 +136,7 @@ try {
       captcha_solver: "capsolver",
       captcha_api_key: "test-key",
       captcha_api_url: `http://127.0.0.1:${solver.address().port}`,
+      proxy_url: `http://127.0.0.1:${proxy.address().port}`,
       captcha_timeout_seconds: 10
     }
   };
@@ -123,5 +148,6 @@ try {
   console.log(`[ok] mock idfree turnstile flow: ${accounts.length} account (${accounts[0].country})`);
 } finally {
   site.close();
+  proxy.close();
   solver.close();
 }

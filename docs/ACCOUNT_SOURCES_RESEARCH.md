@@ -172,6 +172,7 @@ curl.exe -s -b $jar -A $ua `
 - 缺少 `Accept` / `Sec-Fetch-*` / `X-Requested-With` 等浏览器头会返回 `INVALID_BROWSER`。
 - 需要维护 Cookie 和会话 token，建议接入时复用同一个 HTTP Client。
 - Turnstile 求解需要配置 `captcha_solver`（`capsolver` / `2captcha`）和 `captcha_api_key`，或用环境变量 `IDFREE_CAPTCHA_SOLVER` / `IDFREE_CAPTCHA_API_KEY` 注入。
+- 2026-08-12 实测 Cloudflare 出口 IP 被上游拉黑（`Blocked: blacklisted IP`），Worker 侧需要配置 `IDFREE_PROXY_URL` 或 `options.proxy_url` 走非数据中心代理。
 - 当前账号量较小，但字段规范、状态明确。
 
 ### 4.3 CCKDN 云码酷 `appleid.uczyw.us`

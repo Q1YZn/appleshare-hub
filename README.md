@@ -78,6 +78,7 @@ go run .
       "options": {
         "captcha_solver": "capsolver",
         "captcha_api_key": "",
+        "proxy_url": "",
         "captcha_timeout_seconds": 30
       }
     },

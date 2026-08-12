@@ -403,6 +403,9 @@ async function fetchIdFree(cfg) {
   if (!baseURL) {
     throw new Error(`idfree provider "${cfg.id}" requires url`);
   }
+  const proxyURL = String((cfg.options && cfg.options.proxy_url) || "")
+    .trim()
+    .replace(/\/+$/, "");
   const jar = createCookieJar();
   const timeout = timeoutMs(cfg, 20);
 
@@ -412,7 +415,11 @@ async function fetchIdFree(cfg) {
     if (cookie) {
       headers.Cookie = cookie;
     }
-    const { bytes, response } = await requestBytes(`${baseURL}${path}`, {
+    const targetURL = `${baseURL}${path}`;
+    const requestURL = proxyURL
+      ? `${proxyURL}/fetch?url=${encodeURIComponent(targetURL)}`
+      : targetURL;
+    const { bytes, response } = await requestBytes(requestURL, {
       method,
       headers,
       body,
