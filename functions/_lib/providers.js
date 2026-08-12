@@ -644,7 +644,7 @@ async function fetchIOSAppText(cfg) {
         country: "",
         username: String(raw.Account || "").trim(),
         password: String(raw.Password || "").trim(),
-        shadowrocket: false,
+        shadowrocket: true,
         ...mapIOSAppStatus(raw.Status, raw.CheckTime),
         priority: 1,
         updated_at: String(raw.CheckTime || "").trim(),
