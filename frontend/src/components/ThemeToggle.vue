@@ -1,7 +1,8 @@
 <script setup>
+import { computed } from "vue";
 import { Monitor, Moon, Sun } from "@lucide/vue";
 
-defineProps({
+const props = defineProps({
   theme: { type: String, default: "auto" }
 });
 
@@ -12,21 +13,26 @@ const modes = [
   { value: "light", label: "浅色", icon: Sun },
   { value: "dark", label: "深色", icon: Moon }
 ];
+
+const currentMode = computed(
+  () => modes.find((mode) => mode.value === props.theme) || modes[0]
+);
 </script>
 
 <template>
-  <div class="theme-toggle" role="group" aria-label="外观模式">
-    <button
-      v-for="mode in modes"
-      :key="mode.value"
-      class="theme-option"
-      :class="{ 'is-active': theme === mode.value }"
-      type="button"
-      :title="`${mode.label}模式`"
-      @click="$emit('change', mode.value)"
+  <label class="theme-toggle" :title="`${currentMode.label}模式`">
+    <span class="theme-toggle-icon">
+      <component :is="currentMode.icon" :size="15" />
+    </span>
+    <select
+      class="theme-select"
+      :value="theme"
+      aria-label="外观模式"
+      @change="$emit('change', $event.target.value)"
     >
-      <component :is="mode.icon" :size="15" />
-      <span>{{ mode.label }}</span>
-    </button>
-  </div>
+      <option v-for="mode in modes" :key="mode.value" :value="mode.value">
+        {{ mode.label }}
+      </option>
+    </select>
+  </label>
 </template>
