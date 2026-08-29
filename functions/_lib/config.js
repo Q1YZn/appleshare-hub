@@ -100,17 +100,39 @@ function positiveInt(value, fallback) {
 }
 
 export function loadConfig(env = {}) {
+  const config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
   const raw = env.PROVIDER_CONFIG || env.CONFIG_JSON;
-  let config;
   if (raw) {
     try {
-      config = JSON.parse(raw);
-    } catch (error) {
-      throw new Error(`PROVIDER_CONFIG is not valid JSON: ${error.message}`);
-    }
-  }
-  if (!config) {
-    config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+      const custom = JSON.parse(raw);
+      if (custom && custom.server) {
+        Object.assign(config.server, custom.server);
+      }
+      if (custom && Array.isArray(custom.providers)) {
+        for (const customProvider of custom.providers) {
+          const match = config.providers.find((p) => p.id === customProvider.id);
+          if (match) {
+            if (typeof customProvider.enabled === "boolean") {
+              match.enabled = customProvider.enabled;
+            }
+            if (customProvider.name) {
+              match.name = customProvider.name;
+            }
+            if (customProvider.options) {
+              match.options = { ...match.options, ...customProvider.options };
+            }
+            if (customProvider.url && !customProvider.url.includes("appleid.html")) {
+              match.url = customProvider.url;
+            }
+            if (customProvider.name) {
+              match.name = customProvider.name;
+            }
+          } else if (customProvider.id && customProvider.type) {
+            config.providers.push(customProvider);
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   config.server = config.server || {};

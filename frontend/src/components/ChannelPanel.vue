@@ -14,6 +14,14 @@ const stateLabel = {
   error: "获取失败"
 };
 
+function formatChannelName(channel, index) {
+  const name = channel.name || "";
+  if (name.startsWith("渠道")) {
+    return name;
+  }
+  return `渠道${channelLetter(index)} · ${name}`;
+}
+
 function channelTitle(channel, index) {
   const label = stateLabel[channel.status] || channel.status;
   const detail = channel.error ? `：${channel.error}` : "";
@@ -23,7 +31,7 @@ function channelTitle(channel, index) {
   } else if (channel.shadowrocket === "possible") {
     shadowrocket = "，可能有 Shadowrocket";
   }
-  return `渠道${channelLetter(index)} ${channel.name}：${label}${detail}${shadowrocket}`;
+  return `${formatChannelName(channel, index)}：${label}${detail}${shadowrocket}`;
 }
 </script>
 
@@ -43,7 +51,7 @@ function channelTitle(channel, index) {
         @click="$emit('toggle', channel.id)"
       >
         <i class="dot" :class="statusClass(channel.status)"></i>
-        {{ channelLetter(index) }}
+        <span>{{ formatChannelName(channel, index) }}</span>
       </button>
     </div>
   </section>

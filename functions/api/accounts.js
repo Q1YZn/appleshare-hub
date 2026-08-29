@@ -1,7 +1,14 @@
 import { jsonResponse, readSnapshotText } from "../_lib/r2.js";
 
 export async function onRequestGet(context) {
-  const url = new URL(context.request.url);
+  const req = context.request;
+  const url = new URL(req.url);
+  const bypassCache =
+    url.searchParams.has("no_cache") ||
+    url.searchParams.has("_t") ||
+    req.headers.get("Cache-Control") === "no-cache" ||
+    req.headers.get("Cache-Control") === "no-store";
+
   url.pathname = "/api/accounts";
   url.search = "";
   const cacheKey = new Request(url.toString(), { method: "GET" });
@@ -9,7 +16,7 @@ export async function onRequestGet(context) {
 
   try {
     let cached = null;
-    if (cache) {
+    if (cache && !bypassCache) {
       try {
         cached = await cache.match(cacheKey);
       } catch (error) {
@@ -22,18 +29,18 @@ export async function onRequestGet(context) {
 
     const text = await readSnapshotText(context.env);
     const snapshot = JSON.parse(text);
-    const ttl = Number(snapshot.cache_ttl_seconds) || 300;
+    const ttl = Number(snapshot.cache_ttl_seconds) || 30;
     const response = new Response(text, {
       headers: {
         "Content-Type": "application/json; charset=utf-8",
         "Cache-Control": `public, max-age=${ttl}, s-maxage=${ttl}`
       }
     });
-    if (cache) {
+    if (cache && !bypassCache) {
       try {
         await cache.put(cacheKey, response.clone());
       } catch (error) {
-        // cache is an optimization; never fail the API because of it
+        // cache optimization fallback
       }
     }
     return response;
