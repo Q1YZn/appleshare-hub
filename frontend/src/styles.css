@@ -720,6 +720,11 @@ h2 {
   line-height: 1;
 }
 
+.sr-badge.sr-possible {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
 .guide-panel {
   overflow: hidden;
 }

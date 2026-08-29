@@ -17,7 +17,12 @@ const stateLabel = {
 function channelTitle(channel, index) {
   const label = stateLabel[channel.status] || channel.status;
   const detail = channel.error ? `：${channel.error}` : "";
-  const shadowrocket = channel.shadowrocket === true ? "，确认有 Shadowrocket" : "，Shadowrocket 不确定";
+  let shadowrocket = "，不确定是否 Shadowrocket";
+  if (channel.shadowrocket === "certain" || channel.shadowrocket === true) {
+    shadowrocket = "，确定有 Shadowrocket";
+  } else if (channel.shadowrocket === "possible") {
+    shadowrocket = "，可能有 Shadowrocket";
+  }
   return `渠道${channelLetter(index)} ${channel.name}：${label}${detail}${shadowrocket}`;
 }
 </script>

@@ -126,7 +126,7 @@ async function fetchShaCX(cfg) {
         country: item.country || "",
         username: item.username || "",
         password: item.password || "",
-        shadowrocket: true,
+        shadowrocket: "certain",
         ...mapShaStatus(item.status),
         raw_status: item.status,
         updated_at: item.time || "",
@@ -169,18 +169,33 @@ function mapTextStatus(raw, normalMessage, abnormalMessage, unknownMessage) {
 }
 
 async function fetchFanqiangnan(cfg) {
-  if (!cfg.url) {
-    throw new Error(`fanqiangnan provider "${cfg.id}" requires url`);
-  }
-  const raw = await requestJSON(cfg.url, {
-    timeoutMs: timeoutMs(cfg, 15),
-    headers: {
-      "User-Agent": DEFAULT_USER_AGENT,
-      Accept: "application/json"
+  const targetURL = String(cfg.url || 'https://fanqiangnan.com/data_sync.php').trim();
+  let raw = null;
+
+  try {
+    raw = await requestJSON(targetURL, {
+      timeoutMs: timeoutMs(cfg, 15),
+      headers: {
+        'User-Agent': DEFAULT_USER_AGENT,
+        Accept: 'application/json'
+      }
+    });
+  } catch (err) {
+    if (targetURL.includes('appleid.html')) {
+      raw = await requestJSON('https://fanqiangnan.com/data_sync.php', {
+        timeoutMs: timeoutMs(cfg, 15),
+        headers: {
+          'User-Agent': DEFAULT_USER_AGENT,
+          Accept: 'application/json'
+        }
+      });
+    } else {
+      throw err;
     }
-  });
-  if (raw.success !== true) {
-    throw new Error("fanqiangnan response success=false");
+  }
+
+  if (!raw || raw.success !== true) {
+    throw new Error('fanqiangnan response success=false');
   }
 
   const groups = Object.keys((raw.data && raw.data.accounts) || {});
@@ -190,22 +205,22 @@ async function fetchFanqiangnan(cfg) {
     for (const item of raw.data.accounts[group] || []) {
       const mapped = mapTextStatus(
         item.status,
-        "上游检测正常",
-        "上游检测异常",
-        "上游暂未提供状态"
+        '上游检测正常',
+        '上游检测异常',
+        '上游暂未提供状态'
       );
-      const country = String(item.regionName || "").trim() || String(item.region || "").trim();
+      const country = String(item.regionName || '').trim() || String(item.region || '').trim();
       accounts.push({
         id: `${cfg.id}:${group}:${item.id}`,
         channel: cfg.id,
         channel_name: cfg.name,
         country,
-        username: String(item.fullEmail || "").trim(),
-        password: item.password || "",
-        shadowrocket: false,
+        username: String(item.fullEmail || '').trim(),
+        password: item.password || '',
+        shadowrocket: "possible",
         ...mapped,
-        updated_at: item.checkTime || "",
-        source_url: cfg.url
+        updated_at: item.checkTime || '',
+        source_url: targetURL
       });
     }
   }
@@ -511,7 +526,7 @@ async function fetchIdFree(cfg) {
       country: String(item.region_display || "").trim(),
       username: String(item.username || "").trim(),
       password: item.password || "",
-      shadowrocket: false,
+      shadowrocket: "uncertain",
       status: status ? "available" : "unavailable",
       status_label: status ? "可用" : "异常",
       status_message: status
@@ -553,7 +568,7 @@ async function fetchAppleidAPI(cfg) {
       country: String(item.region || "").trim(),
       username: String(item.email || "").trim(),
       password: item.password || "",
-      shadowrocket: false,
+      shadowrocket: "uncertain",
       ...mapped,
       updated_at: item.timestamp || item.time || "",
       source_url: cfg.url
@@ -644,7 +659,7 @@ async function fetchIOSAppText(cfg) {
         country: "",
         username: String(raw.Account || "").trim(),
         password: String(raw.Password || "").trim(),
-        shadowrocket: true,
+        shadowrocket: "certain",
         ...mapIOSAppStatus(raw.Status, raw.CheckTime),
         priority: 1,
         updated_at: String(raw.CheckTime || "").trim(),
@@ -808,7 +823,7 @@ async function fetchUnicornKnowledge(cfg) {
       country,
       username,
       password,
-      shadowrocket: true,
+      shadowrocket: "uncertain",
       ...mapUnicornStatus(rawStatus),
       priority: index,
       updated_at: String(item.updated_at || item.time || item.check_time || "").trim(),
@@ -830,6 +845,234 @@ function unicornErrorHint(parsed) {
   return "";
 }
 
+
+function resolveShareIDURLs(cfg) {
+  let accountsURL = "";
+  if (cfg.options && typeof cfg.options.accounts_url === "string" && cfg.options.accounts_url.trim()) {
+    accountsURL = cfg.options.accounts_url.trim();
+  } else if (typeof cfg.url === "string" && cfg.url.trim()) {
+    accountsURL = cfg.url.trim();
+  }
+
+  let tokenURL = "";
+  if (cfg.options && typeof cfg.options.token_url === "string" && cfg.options.token_url.trim()) {
+    tokenURL = cfg.options.token_url.trim();
+  } else if (accountsURL) {
+    if (accountsURL.endsWith("/b.php")) {
+      tokenURL = accountsURL.slice(0, -6) + "/a.php";
+    } else if (accountsURL.includes("/b.php?")) {
+      tokenURL = accountsURL.replace("/b.php?", "/a.php?");
+    } else if (accountsURL.endsWith("b.php")) {
+      tokenURL = accountsURL.slice(0, -5) + "a.php";
+    } else if (accountsURL.endsWith("/")) {
+      tokenURL = accountsURL + "a.php";
+    } else {
+      tokenURL = accountsURL + "/a.php";
+    }
+  }
+  return { accountsURL, tokenURL };
+}
+
+export function cleanShareIDUsername(raw) {
+  const s = String(raw || "").replace(/\\@/g, "@");
+  const cleaned = s.replace(/[^a-zA-Z0-9@.]/g, "").trim();
+  return cleaned;
+}
+
+function shareIDSessionCookie(cfg) {
+  return String((cfg.options && cfg.options.session_cookie) || "").trim();
+}
+
+function mapShareIDTokenStatus(raw) {
+  switch (Number(raw)) {
+    case 1:
+      return { status: "available", status_label: "可用", status_message: "检测正常，可登录 App Store" };
+    case 0:
+      return { status: "checking", status_label: "检测中", status_message: "账号正在检测，请稍后刷新" };
+    case 2:
+      return { status: "unavailable", status_label: "异常", status_message: "账号异常，请勿使用" };
+    case 3:
+      return { status: "pending", status_label: "待检测", status_message: "账号等待检测" };
+    default:
+      return { status: "unknown", status_label: "未知", status_message: "未知状态" };
+  }
+}
+
+async function fetchShareIDToken(cfg) {
+  const { accountsURL, tokenURL } = resolveShareIDURLs(cfg);
+  if (!accountsURL) {
+    throw new Error("shareid_token provider \"" + cfg.id + "\" requires url or options.accounts_url");
+  }
+
+  const userAgent = "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36";
+  const sessionCookie = shareIDSessionCookie(cfg);
+  const tokenHeaders = {
+    "User-Agent": userAgent,
+    "Accept": "*/*",
+    "Content-Type": "application/json"
+  };
+  if (sessionCookie) {
+    tokenHeaders.Cookie = sessionCookie;
+  }
+
+  try {
+    const parsed = new URL(tokenURL);
+    tokenHeaders["Origin"] = parsed.origin;
+    tokenHeaders["Referer"] = parsed.origin + "/user/index/share";
+  } catch (_) {}
+
+  const tokenRespText = await requestText(tokenURL, {
+    method: "POST",
+    headers: tokenHeaders,
+    timeoutMs: timeoutMs(cfg, 15)
+  });
+
+  let tokenData;
+  try {
+    tokenData = JSON.parse(tokenRespText);
+  } catch (error) {
+    throw new Error("parse token response: " + error.message);
+  }
+
+  if (!tokenData || tokenData.code !== 200 || !tokenData.token) {
+    const msg = (tokenData && tokenData.message) || ("code " + (tokenData ? tokenData.code : "unknown"));
+    throw new Error("token endpoint error: " + msg);
+  }
+
+  const token = String(tokenData.token).trim();
+
+  const accountsHeaders = {
+    "User-Agent": userAgent,
+    "Accept": "*/*",
+    "Cookie": sessionCookie ? "Grid=" + token + "; " + sessionCookie : "Grid=" + token
+  };
+
+  try {
+    const parsed = new URL(accountsURL);
+    accountsHeaders["Referer"] = parsed.origin + "/user/index/share";
+  } catch (_) {}
+
+  const accountsRespText = await requestText(accountsURL, {
+    method: "GET",
+    headers: accountsHeaders,
+    timeoutMs: timeoutMs(cfg, 15)
+  });
+
+  let accountsData;
+  try {
+    accountsData = JSON.parse(accountsRespText);
+  } catch (error) {
+    throw new Error("parse accounts response: " + error.message);
+  }
+
+  if (!accountsData || accountsData.code !== 200 || !Array.isArray(accountsData.data)) {
+    throw new Error("accounts endpoint returned invalid response");
+  }
+
+  const accounts = [];
+  const seen = new Set();
+  accountsData.data.forEach((item, index) => {
+    const cleanedUsername = cleanShareIDUsername(item.username);
+    if (!cleanedUsername || seen.has(cleanedUsername)) {
+      return;
+    }
+    seen.add(cleanedUsername);
+
+    const statusMeta = mapShareIDTokenStatus(item.status);
+    let statusMessage = statusMeta.status_message;
+    if (item.msg) {
+      if (statusMeta.status === "available") {
+        statusMessage = item.msg + "，可登录 App Store";
+      } else {
+        statusMessage = item.msg;
+      }
+    }
+
+    accounts.push({
+      id: cfg.id + ":" + cleanedUsername,
+      channel: cfg.id,
+      channel_name: cfg.name,
+      country: String(item.country || "").trim(),
+      username: cleanedUsername,
+      password: String(item.password || "").trim(),
+      shadowrocket: "uncertain",
+      status: statusMeta.status,
+      status_label: statusMeta.status_label,
+      status_message: statusMessage,
+      raw_status: item.status,
+      priority: index,
+      updated_at: String(item.time || "").trim(),
+      source_url: accountsURL
+    });
+  });
+
+  return accounts;
+}
+
+async function fetchPokemon(cfg) {
+  const url = String(cfg.url || 'https://appleid.52pokemon.cc/shareapi/MJFSqzxasI').trim();
+  const raw = await requestJSON(url, {
+    timeoutMs: timeoutMs(cfg, 15),
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36',
+      'Accept': 'application/json, text/plain, */*',
+      'Referer': 'https://web4.52pokemon.cc/',
+      'Origin': 'https://web4.52pokemon.cc'
+    }
+  });
+
+  if (!raw || raw.status !== true || !Array.isArray(raw.accounts)) {
+    throw new Error('pokemon response status=false or invalid accounts array');
+  }
+
+  const accounts = [];
+  const seen = new Set();
+  raw.accounts.forEach((item, index) => {
+    const username = String(item.username || '').trim();
+    if (!username || seen.has(username)) {
+      return;
+    }
+    seen.add(username);
+
+    const message = String(item.message || '').trim();
+    let status = 'available';
+    let statusLabel = '可用';
+    let statusMessage = '检测正常，可登录 App Store';
+
+    if (message === '正常') {
+      status = 'available';
+      statusLabel = '可用';
+      statusMessage = '检测正常，可登录 App Store';
+    } else if (message) {
+      status = 'unavailable';
+      statusLabel = '异常';
+      statusMessage = message;
+    } else if (item.status !== true) {
+      status = 'unavailable';
+      statusLabel = '异常';
+      statusMessage = '账号异常，请勿使用';
+    }
+
+    accounts.push({
+      id: `${cfg.id}:${item.id || username}`,
+      channel: cfg.id,
+      channel_name: cfg.name,
+      country: String(item.region_display || '美国').trim(),
+      username,
+      password: String(item.password || '').trim(),
+      shadowrocket: "certain",
+      status,
+      status_label: statusLabel,
+      status_message: statusMessage,
+      priority: index,
+      updated_at: String(item.last_check || '').trim(),
+      source_url: url
+    });
+  });
+
+  return accounts;
+}
+
 export function createProvider(cfg) {
   switch (cfg.type) {
     case "sha_cx":
@@ -844,6 +1087,10 @@ export function createProvider(cfg) {
       return { id: cfg.id, name: cfg.name, fetch: () => fetchIOSAppText(cfg) };
     case "unicorn_knowledge":
       return { id: cfg.id, name: cfg.name, fetch: () => fetchUnicornKnowledge(cfg) };
+    case "pokemon":
+      return { id: cfg.id, name: cfg.name, fetch: () => fetchPokemon(cfg) };
+    case "shareid_token":
+      return { id: cfg.id, name: cfg.name, fetch: () => fetchShareIDToken(cfg) };
     default:
       throw new Error(`unknown provider type "${cfg.type}"`);
   }

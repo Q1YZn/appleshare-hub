@@ -36,14 +36,15 @@ defineEmits(["update:onlyAvailable", "update:country", "update:shadowrocket"]);
       </select>
     </label>
     <label class="filter-field">
-      <span>是否小火箭</span>
+      <span>shadowrocket(小火箭)</span>
       <select
         class="filter-select"
         :value="selectedShadowrocket"
         @change="$emit('update:shadowrocket', $event.target.value)"
       >
         <option value="">全部</option>
-        <option value="yes">有Shadowrocket</option>
+        <option value="certain">确定有</option>
+        <option value="possible">可能有</option>
         <option value="uncertain">不确定</option>
       </select>
     </label>

@@ -6,8 +6,10 @@
 
 | 配置 ID | 类型 | 名称 | 来源 |
 | --- | --- | --- | --- |
-| `sha_cx_01` | `sha_cx` | 渠道 A（sha.cx） | <https://d8p8e.sha.cx/51e8990f678655f7749dfa8c5598dfbd> 与 <https://7y6h5.sha.cx/23cfa3c22135050d45f82283f2ef6e7f> |
-| `fanqiangnan_01` | `fanqiangnan` | 翻墙男（fanqiangnan） | <https://fanqiangnan.com/data_sync.php> |
+| `sha_cx_01` | `sha_cx` | 渠道 A（sha.cx，确定有shadowrocket） |
+| `pokemon_01` | `pokemon` | 宝可梦（appleid.52pokemon.cc，确定有shadowrocket） | <https://appleid.52pokemon.cc/shareapi/MJFSqzxasI> | <https://d8p8e.sha.cx/51e8990f678655f7749dfa8c5598dfbd> 与 <https://7y6h5.sha.cx/23cfa3c22135050d45f82283f2ef6e7f> |
+| `fanqiangnan_01` | `fanqiangnan` | 翻墙男（fanqiangnan，可能有shadowrocket） | <https://fanqiangnan.com/data_sync.php> |
+| `shareid_token_01` | `shareid_token` | 美少女小店（不确定是否shadowrocket） | <https://shop.bishojono1.com/tools/shareid/b.php> |
 | `idfree_01` | `idfree` | 小优 ID（idfree） | <https://idfree.top/> |
 | `appleid_api_01` | `appleid_api` | 云码酷（appleid.uczyw.us） | <https://appleid.uczyw.us/api/accounts> |
 | `iosapp_text_01` | `iosapp_text` | 免费文本源（iosapp.icu） | <https://free.iosapp.icu/go-rod/1.txt> 等 1-3 |
@@ -236,6 +238,51 @@ Authorization: Bearer <登录后从 localStorage 取到的 token>
 - 返回结构暂未拿到真实成功样例，代码同时支持 JSON 递归查找（`username/email/account` + `password/pass/pwd`）和纯文本邮箱密码行兜底。
 - 91unicorn 知识库是作者整理的小火箭账号来源，当前实现把该渠道账号标记为“确认有 Shadowrocket”，前端可用“有Shadowrocket / 不确定”筛选。
 - 该渠道需要登录态且结构可能随知识库页面变化，优先级低于公开 JSON 接口。
+
+### 2.7 美少女小店 Shadowrocket
+
+该来源需要两步请求：
+
+```text
+1. POST https://shop.bishojono1.com/tools/shareid/a.php  获取 Grid token
+2. GET  https://shop.bishojono1.com/tools/shareid/b.php  携带 Grid=<token> 获取账号
+```
+
+`a.php` 返回：
+
+```json
+{
+  "code": 200,
+  "token": "98f664a60bf77e0f013d7bdd8b134cd7",
+  "message": "Token generated successfully"
+}
+```
+
+`b.php` 返回：
+
+```json
+{
+  "code": 200,
+  "data": [
+    {
+      "country": "美国",
+      "msg": "解锁成功",
+      "password": "****",
+      "status": 1,
+      "time": "2026-08-28 23:07:53",
+      "username": "请删除uywjjt\\@hao007.w所有中文in柾繍请不要登录设置否则手机会变砖"
+    }
+  ]
+}
+```
+
+接入要点：
+
+- `status == 1` 映射为 `available`，`time` 作为更新时间，`country` 作为地区。
+- 用户名先还原 `\\@` 为 `@`，再移除中文和提示文案，仅保留字母、数字、点号和 `@`；上例清洗后为 `uywjjt@hao007.win`。
+- 该渠道账号确认附带 Shadowrocket，输出 `shadowrocket: true`。
+- 如 `a.php` 要求登录态，把浏览器请求里的 `server_name_session=...` Cookie 填入 `options.session_cookie`，或设置 `SHAREID_SESSION_COOKIE`；获取到的 `Grid` token 会自动追加到账号请求。
+- `url` 默认为 `b.php`，`options.token_url` 可显式配置 `a.php`；只填 `url` 时程序会自动把末尾 `b.php` 换成 `a.php`。
 
 ## 3. 状态映射
 

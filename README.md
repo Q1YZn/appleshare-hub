@@ -11,7 +11,7 @@ AppleShare Hub 是一个使用 Go + Gin 构建的苹果账号分发状态服务�
 - 支持按国家/地区、渠道和是否附带 Shadowrocket 筛选，渠道状态以字母编号紧凑展示，渠道 A 固定在最前。
 - 账号列表默认每页展示 8 条，支持上一页、下一页和页码跳转。
 - 内置 iOS 26 登录/退出教程、Apple 官方示意图和 idfree.top 详细图文教程。
-- 已接入 sha.cx、翻墙男、小优 ID、云码酷、free.iosapp.icu、91unicorn 知识库等来源，后续可通过 `Provider` 继续扩展。
+- 已接入 sha.cx、翻墙男、小优 ID、美少女小店 Shadowrocket、云码酷、free.iosapp.icu、91unicorn 知识库等来源，后续可通过 `Provider` 继续扩展。
 - 附带架构文档、渠道接入文档和使用教程。
 
 ## 重要安全提示
@@ -55,8 +55,21 @@ go run .
     {
       "id": "sha_cx_01",
       "type": "sha_cx",
-      "name": "渠道 A（sha.cx）",
+      "name": "渠道 A（sha.cx，确定有shadowrocket）",
       "enabled": true,
+      "options": {
+        "urls": [
+          "https://d8p8e.sha.cx/51e8990f678655f7749dfa8c5598dfbd",
+          "https://7y6h5.sha.cx/23cfa3c22135050d45f82283f2ef6e7f"
+        ]
+      }
+    },
+    {
+      "id": "pokemon_01",
+      "type": "pokemon",
+      "name": "宝可梦（appleid.52pokemon.cc，确定有shadowrocket）",
+      "url": "https://appleid.52pokemon.cc/shareapi/MJFSqzxasI",
+      "enabled": true
       "options": {
         "urls": [
           "https://d8p8e.sha.cx/51e8990f678655f7749dfa8c5598dfbd",
@@ -67,9 +80,20 @@ go run .
     {
       "id": "fanqiangnan_01",
       "type": "fanqiangnan",
-      "name": "翻墙男（fanqiangnan）",
+      "name": "翻墙男（fanqiangnan，可能有shadowrocket）",
       "url": "https://fanqiangnan.com/data_sync.php",
       "enabled": true
+    },
+    {
+      "id": "shareid_token_01",
+      "type": "shareid_token",
+      "name": "美少女小店（不确定是否shadowrocket）",
+      "url": "https://shop.bishojono1.com/tools/shareid/b.php",
+      "enabled": true,
+      "options": {
+        "token_url": "https://shop.bishojono1.com/tools/shareid/a.php",
+        "session_cookie": ""
+      }
     },
     {
       "id": "idfree_01",
@@ -119,6 +143,8 @@ go run .
 ```
 
 91unicorn 需要登录态：登录后从浏览器 localStorage 取 token，填入 `options.token`，或设置环境变量 `UNICORN_TOKEN`，程序会自动携带 `Authorization: Bearer <token>`。没有 token 时该渠道会标记为错误，不影响其他渠道。
+
+美少女小店 Shadowrocket 渠道会先 POST `options.token_url` 获取 `Grid` token，再用该 token 请求 `url` 获取账号；如上游要求登录态，把浏览器里的 `server_name_session=...` Cookie 填入 `options.session_cookie`，Cloudflare Functions 也可设置 `SHAREID_SESSION_COOKIE`。该渠道会自动去掉用户名中的中文提示，仅保留字母、数字、点号和 `@`。
 
 ## API
 
@@ -185,7 +211,7 @@ go run .
 ├── internal/
 │   ├── config/                   # 配置文件解析
 │   ├── model/                    # 账号、渠道、快照等数据模型
-│   ├── provider/                 # 渠道抽象与 sha.cx / fanqiangnan / idfree / appleid_api / iosapp_text / unicorn_knowledge 实现
+│   ├── provider/                 # 渠道抽象与 sha.cx / fanqiangnan / idfree / shareid_token / appleid_api / iosapp_text / unicorn_knowledge 实现
 │   ├── service/                  # 缓存、聚合、状态计算
 │   └── httpapi/                  # Gin 路由与 API
 ├── frontend/                     # Vite + Vue 3 前端源码

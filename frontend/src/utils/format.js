@@ -8,7 +8,7 @@ export function channelLabel(snapshot, channelId) {
   if (index < 0) {
     return channelId || "未知渠道";
   }
-  return `渠道${channelLetter(index)}`;
+  return `渠道${channelLetter(index)} · ${channels[index].name}`;
 }
 
 export function channelFullLabel(snapshot, channelId) {

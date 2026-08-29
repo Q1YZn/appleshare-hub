@@ -100,7 +100,7 @@ func (p *fanqiangnanProvider) Fetch(ctx context.Context) ([]model.Account, error
 				StatusLabel:   label,
 				UpdatedAt:     item.CheckTime,
 				SourceURL:     p.url,
-				Shadowrocket:  false,
+				Shadowrocket:  true,
 			})
 		}
 	}

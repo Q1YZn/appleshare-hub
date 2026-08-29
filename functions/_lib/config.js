@@ -7,7 +7,7 @@ const DEFAULT_CONFIG = {
     {
       id: "sha_cx_01",
       type: "sha_cx",
-      name: "渠道 A（sha.cx）",
+      name: "渠道 A（sha.cx，确定有shadowrocket）",
       enabled: true,
       options: {
         urls: [
@@ -17,9 +17,27 @@ const DEFAULT_CONFIG = {
       }
     },
     {
+      id: "pokemon_01",
+      type: "pokemon",
+      name: "宝可梦（appleid.52pokemon.cc，确定有shadowrocket）",
+      url: "https://appleid.52pokemon.cc/shareapi/MJFSqzxasI",
+      enabled: true
+    },
+    {
+      id: "shareid_token_01",
+      type: "shareid_token",
+      name: "美少女小店（不确定是否shadowrocket）",
+      url: "https://shop.bishojono1.com/tools/shareid/b.php",
+      enabled: true,
+      options: {
+        token_url: "https://shop.bishojono1.com/tools/shareid/a.php",
+        session_cookie: ""
+      }
+    },
+    {
       id: "fanqiangnan_01",
       type: "fanqiangnan",
-      name: "翻墙男（fanqiangnan）",
+      name: "翻墙男（fanqiangnan，可能有shadowrocket）",
       url: "https://fanqiangnan.com/data_sync.php",
       enabled: true
     },
@@ -66,7 +84,7 @@ const DEFAULT_CONFIG = {
     {
       id: "unicorn_knowledge_01",
       type: "unicorn_knowledge",
-      name: "独角兽知识库（91unicorn）",
+      name: "独角兽知识库（91unicorn，确定有shadowrocket）",
       url: "https://91unicorn.cloud/api/v1/user/knowledge/fetch?id=34&language=zh-CN",
       enabled: true,
       options: {
@@ -120,6 +138,9 @@ export function loadConfig(env = {}) {
     }
     if (env.UNICORN_TOKEN) {
       provider.options.token = env.UNICORN_TOKEN;
+    }
+    if (provider.type === "shareid_token" && env.SHAREID_SESSION_COOKIE) {
+      provider.options.session_cookie = env.SHAREID_SESSION_COOKIE;
     }
   }
   return config;

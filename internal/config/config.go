@@ -31,7 +31,7 @@ func Default() Config {
 			{
 				ID:      "sha_cx_01",
 				Type:    "sha_cx",
-				Name:    "渠道 A（sha.cx）",
+				Name:    "渠道 A（sha.cx，确定有shadowrocket）",
 				Enabled: true,
 				Options: map[string]any{
 					"urls": []string{
@@ -41,9 +41,27 @@ func Default() Config {
 				},
 			},
 			{
+				ID:      "pokemon_01",
+				Type:    "pokemon",
+				Name:    "宝可梦（appleid.52pokemon.cc，确定有shadowrocket）",
+				URL:     "https://appleid.52pokemon.cc/shareapi/MJFSqzxasI",
+				Enabled: true,
+			},
+			{
+				ID:      "shareid_token_01",
+				Type:    "shareid_token",
+				Name:    "美少女小店（不确定是否shadowrocket）",
+				URL:     "https://shop.bishojono1.com/tools/shareid/b.php",
+				Enabled: true,
+				Options: map[string]any{
+					"token_url":      "https://shop.bishojono1.com/tools/shareid/a.php",
+					"session_cookie": "",
+				},
+			},
+			{
 				ID:      "fanqiangnan_01",
 				Type:    "fanqiangnan",
-				Name:    "翻墙男（fanqiangnan）",
+				Name:    "翻墙男（fanqiangnan，可能有shadowrocket）",
 				URL:     "https://fanqiangnan.com/data_sync.php",
 				Enabled: true,
 			},
@@ -90,7 +108,7 @@ func Default() Config {
 			{
 				ID:      "unicorn_knowledge_01",
 				Type:    "unicorn_knowledge",
-				Name:    "独角兽知识库（91unicorn）",
+				Name:    "独角兽知识库（91unicorn，确定有shadowrocket）",
 				URL:     "https://91unicorn.cloud/api/v1/user/knowledge/fetch?id=34&language=zh-CN",
 				Enabled: true,
 				Options: map[string]any{

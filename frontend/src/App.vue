@@ -67,10 +67,19 @@ const filteredAccounts = computed(() => {
   if (selectedChannel.value) {
     accounts = accounts.filter((account) => account.channel === selectedChannel.value);
   }
-  if (selectedShadowrocket.value === "yes") {
-    accounts = accounts.filter((account) => account.shadowrocket === true);
+  if (selectedShadowrocket.value === "certain" || selectedShadowrocket.value === "yes") {
+    accounts = accounts.filter(
+      (account) => account.shadowrocket === "certain" || account.shadowrocket === true
+    );
+  } else if (selectedShadowrocket.value === "possible") {
+    accounts = accounts.filter((account) => account.shadowrocket === "possible");
   } else if (selectedShadowrocket.value === "uncertain") {
-    accounts = accounts.filter((account) => account.shadowrocket !== true);
+    accounts = accounts.filter(
+      (account) =>
+        account.shadowrocket === "uncertain" ||
+        account.shadowrocket === false ||
+        !account.shadowrocket
+    );
   }
   return accounts;
 });
