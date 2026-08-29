@@ -11,17 +11,17 @@ defineEmits(["update:onlyAvailable", "update:country", "update:shadowrocket"]);
 
 <template>
   <div class="filter-toolbar">
-    <label class="filter-toggle" :class="{ 'is-active': onlyAvailable }">
-      <input
-        type="checkbox"
-        class="filter-toggle-input"
-        :checked="onlyAvailable"
-        @change="$emit('update:onlyAvailable', $event.target.checked)"
-      >
-      <span>只看可用</span>
-    </label>
+    <div class="filter-group-left">
+      <label class="filter-toggle" :class="{ 'is-active': onlyAvailable }">
+        <input
+          type="checkbox"
+          class="filter-toggle-input"
+          :checked="onlyAvailable"
+          @change="$emit('update:onlyAvailable', $event.target.checked)"
+        >
+        <span>只看可用</span>
+      </label>
 
-    <div class="filter-fields">
       <label class="filter-field">
         <span class="filter-label">地区</span>
         <select

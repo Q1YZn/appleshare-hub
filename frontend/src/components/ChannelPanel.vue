@@ -1,5 +1,5 @@
 <script setup>
-import { channelLetter, statusClass } from "../utils/format.js";
+import { formatChannelName, statusClass } from "../utils/format.js";
 
 defineProps({
   channels: { type: Array, default: () => [] },
@@ -23,28 +23,32 @@ function channelTitle(channel, index) {
   } else if (channel.shadowrocket === "possible") {
     shadowrocket = "，可能有 Shadowrocket";
   }
-  const name = channel.name || `渠道${channelLetter(index)}`;
+  const name = formatChannelName(channel, index);
   return `${name}：${label}${detail}${shadowrocket}`;
 }
 </script>
 
 <template>
   <section class="panel channel-panel">
-    <div class="section-head compact">
+    <div class="panel-header compact">
       <h2>渠道状态</h2>
+      <span class="channel-hint">点击快速筛选</span>
     </div>
-    <div class="channel-list">
+    <div class="channel-grid">
       <button
         v-for="(channel, index) in channels"
         :key="channel.id"
         class="channel-pill"
-        :class="{ 'is-active': selectedChannel === channel.id }"
+        :class="{
+          'is-active': selectedChannel === channel.id,
+          'is-error': channel.status === 'error'
+        }"
         type="button"
         :title="channelTitle(channel, index)"
         @click="$emit('toggle', channel.id)"
       >
         <i class="dot" :class="statusClass(channel.status)"></i>
-        <span>{{ channel.name || `渠道${channelLetter(index)}` }}</span>
+        <span class="channel-name">{{ formatChannelName(channel, index) }}</span>
       </button>
     </div>
   </section>
