@@ -1,6 +1,7 @@
 <script setup>
 import { Check, ClipboardList, Copy, KeyRound } from "@lucide/vue";
 import { computed, onBeforeUnmount, ref } from "vue";
+import { formatTime } from "../utils/format.js";
 
 const props = defineProps({
   account: { type: Object, required: true },
@@ -69,11 +70,11 @@ onBeforeUnmount(() => {
   >
     <div class="account-top">
       <span class="status-badge" :class="account.status">{{ account.status_label || "未知" }}</span>
-      <span class="country">{{ account.country || "未知地区" }}</span>
-      <span class="channel-tag">{{ channelLabel }}</span>
+      <span v-if="account.country" class="country">{{ account.country }}</span>
+      <span v-if="channelLabel" class="channel-tag">{{ channelLabel }}</span>
       <span v-if="account.shadowrocket === 'certain' || account.shadowrocket === true" class="sr-badge sr-certain" title="确定带有 Shadowrocket 配置">SR (确定有)</span>
       <span v-else-if="account.shadowrocket === 'possible'" class="sr-badge sr-possible" title="可能有 Shadowrocket 配置">SR (可能有)</span>
-      <span class="updated">{{ account.updated_at || "" }}</span>
+      <span v-if="account.updated_at" class="updated">{{ formatTime(account.updated_at) }}</span>
     </div>
     <div class="cred">
       <div class="cred-row">

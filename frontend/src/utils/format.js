@@ -8,25 +8,21 @@ export function channelLabel(snapshot, channelId) {
   if (index < 0) {
     return channelId || "未知渠道";
   }
-  return `渠道${channelLetter(index)} · ${channels[index].name}`;
+  const name = channels[index].name || "";
+  return name || `渠道${channelLetter(index)}`;
 }
 
 export function channelFullLabel(snapshot, channelId) {
-  const channels = snapshot?.channels || [];
-  const index = channels.findIndex((channel) => channel.id === channelId);
-  if (index < 0) {
-    return channelId || "未知渠道";
-  }
-  return `渠道${channelLetter(index)} · ${channels[index].name}`;
+  return channelLabel(snapshot, channelId);
 }
 
 export function formatTime(value) {
   if (!value) {
-    return "时间未知";
+    return "";
   }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return value;
+    return String(value);
   }
   return date.toLocaleString("zh-CN", { hour12: false });
 }

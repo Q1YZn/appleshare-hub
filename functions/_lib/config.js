@@ -7,7 +7,7 @@ const DEFAULT_CONFIG = {
     {
       id: "sha_cx_01",
       type: "sha_cx",
-      name: "渠道 A（sha.cx，确定有shadowrocket）",
+      name: "机场渠道 A",
       enabled: true,
       options: {
         urls: [
@@ -19,14 +19,31 @@ const DEFAULT_CONFIG = {
     {
       id: "pokemon_01",
       type: "pokemon",
-      name: "宝可梦（appleid.52pokemon.cc，确定有shadowrocket）",
+      name: "机场渠道 B",
       url: "https://appleid.52pokemon.cc/shareapi/MJFSqzxasI",
+      enabled: true
+    },
+    {
+      id: "unicorn_knowledge_01",
+      type: "unicorn_knowledge",
+      name: "机场渠道 C",
+      url: "https://91unicorn.cloud/api/v1/user/knowledge/fetch?id=34&language=zh-CN",
+      enabled: true,
+      options: {
+        token: ""
+      }
+    },
+    {
+      id: "fanqiangnan_01",
+      type: "fanqiangnan",
+      name: "公开渠道 D",
+      url: "https://fanqiangnan.com/data_sync.php",
       enabled: true
     },
     {
       id: "shareid_token_01",
       type: "shareid_token",
-      name: "美少女小店（不确定是否shadowrocket）",
+      name: "公开渠道 E",
       url: "https://shop.bishojono1.com/tools/shareid/b.php",
       enabled: true,
       options: {
@@ -35,16 +52,9 @@ const DEFAULT_CONFIG = {
       }
     },
     {
-      id: "fanqiangnan_01",
-      type: "fanqiangnan",
-      name: "翻墙男（fanqiangnan，可能有shadowrocket）",
-      url: "https://fanqiangnan.com/data_sync.php",
-      enabled: true
-    },
-    {
       id: "idfree_01",
       type: "idfree",
-      name: "小优 ID（idfree）",
+      name: "公开渠道 F",
       url: "https://idfree.top/",
       enabled: true,
       options: {
@@ -57,21 +67,14 @@ const DEFAULT_CONFIG = {
     {
       id: "appleid_api_01",
       type: "appleid_api",
-      name: "云码酷（appleid.uczyw.us）",
+      name: "公开渠道 G",
       url: "https://appleid.uczyw.us/api/accounts",
       enabled: true
     },
     {
-      id: "appleid_api_02",
-      type: "appleid_api",
-      name: "云码酷备用（appleid2.uczyw.us）",
-      url: "https://appleid2.uczyw.us/api/accounts",
-      enabled: false
-    },
-    {
       id: "iosapp_text_01",
       type: "iosapp_text",
-      name: "免费文本源（iosapp.icu，低优先级）",
+      name: "公开渠道 H",
       enabled: true,
       options: {
         urls: [
@@ -82,14 +85,11 @@ const DEFAULT_CONFIG = {
       }
     },
     {
-      id: "unicorn_knowledge_01",
-      type: "unicorn_knowledge",
-      name: "独角兽知识库（91unicorn，确定有shadowrocket）",
-      url: "https://91unicorn.cloud/api/v1/user/knowledge/fetch?id=34&language=zh-CN",
-      enabled: true,
-      options: {
-        token: ""
-      }
+      id: "appleid_api_02",
+      type: "appleid_api",
+      name: "公开渠道备用",
+      url: "https://appleid2.uczyw.us/api/accounts",
+      enabled: false
     }
   ]
 };
@@ -123,9 +123,6 @@ export function loadConfig(env = {}) {
             }
             if (customProvider.url && !customProvider.url.includes("appleid.html")) {
               match.url = customProvider.url;
-            }
-            if (customProvider.name) {
-              match.name = customProvider.name;
             }
           } else if (customProvider.id && customProvider.type) {
             config.providers.push(customProvider);

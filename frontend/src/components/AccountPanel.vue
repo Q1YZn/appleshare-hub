@@ -3,7 +3,7 @@ import { CloudOff, Inbox } from "@lucide/vue";
 import AccountCard from "./AccountCard.vue";
 import FilterControls from "./FilterControls.vue";
 import PaginationNav from "./PaginationNav.vue";
-import { channelLabel } from "../utils/format.js";
+import { channelLabel, statusClass } from "../utils/format.js";
 
 defineProps({
   snapshot: { type: Object, default: null },
@@ -26,22 +26,28 @@ defineEmits(["update:onlyAvailable", "update:country", "update:shadowrocket", "p
 
 <template>
   <section class="panel account-panel">
-    <div class="section-head">
-      <div>
+    <div class="panel-header">
+      <div class="panel-title-area">
         <h2>账号状态</h2>
         <p class="section-note">{{ generatedAt }}</p>
       </div>
-      <FilterControls
-        :only-available="onlyAvailable"
-        :selected-country="selectedCountry"
-        :selected-shadowrocket="selectedShadowrocket"
-        :country-options="countryOptions"
-        :legend="legend"
-        @update:only-available="$emit('update:onlyAvailable', $event)"
-        @update:country="$emit('update:country', $event)"
-        @update:shadowrocket="$emit('update:shadowrocket', $event)"
-      />
+      <div class="legend">
+        <span v-for="item in legend" :key="item.status" class="legend-item" :title="item.description || item.label">
+          <i class="dot" :class="statusClass(item.status)"></i>
+          {{ item.label }}
+        </span>
+      </div>
     </div>
+
+    <FilterControls
+      :only-available="onlyAvailable"
+      :selected-country="selectedCountry"
+      :selected-shadowrocket="selectedShadowrocket"
+      :country-options="countryOptions"
+      @update:only-available="$emit('update:onlyAvailable', $event)"
+      @update:country="$emit('update:country', $event)"
+      @update:shadowrocket="$emit('update:shadowrocket', $event)"
+    />
 
     <div v-if="accounts.length" class="account-list" aria-live="polite">
       <AccountCard
